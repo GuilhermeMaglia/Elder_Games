@@ -1,0 +1,99 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  nome      String   @db.VarChar(60)
+  email     String   @unique @db.VarChar(60)
+  senha     String   @db.VarChar(60)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
+}
+
+model Marca {
+  id       Int       @id @default(autoincrement())
+  nome     String    @db.VarChar(30)
+  produtos Produto[]
+
+  @@map("marcas")
+}
+
+model Categoria {
+  id       Int       @id @default(autoincrement())
+  nome     String    @db.VarChar(30)
+  produtos Produto[]
+
+  @@map("categorias")
+}
+
+model Produto {
+  id          Int        @id @default(autoincrement())
+  titulo      String     @db.VarChar(60)
+  descricao   String?    @db.Text
+  preco       Decimal    @db.Decimal(10, 2)
+  foto        String     @db.Text
+  destaque    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  marca       Marca      @relation(fields: [marcaId], references: [id])
+  marcaId     Int
+  
+  categoria   Categoria  @relation(fields: [categoriaId], references: [id])
+  categoriaId Int
+  
+  pedidos     Pedido[]
+
+  @@map("produtos")
+}
+
+model Cliente {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  nome      String   @db.VarChar(60)
+  email     String   @unique @db.VarChar(60)
+  senha     String   @db.VarChar(60)
+  cidade    String   @db.VarChar(30)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  pedidos   Pedido[]
+
+  @@map("clientes")
+}
+
+model Pedido {
+  id        Int      @id @default(autoincrement())
+  descricao String   @db.VarChar(255)
+  resposta  String?  @db.VarChar(255)
+  status    Status   @default(PENDENTE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cliente   Cliente  @relation(fields: [clienteId], references: [id])
+  clienteId String   @db.VarChar(36)
+
+  produto   Produto  @relation(fields: [produtoId], references: [id])
+  produtoId Int
+
+  @@map("pedidos")
+}
+
+enum Status {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDO
+  CANCELADO
+}
