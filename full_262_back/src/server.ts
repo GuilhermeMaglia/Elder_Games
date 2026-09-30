@@ -9,6 +9,7 @@ import routesLogin from './routes/login'
 import routesPedidos from './routes/pedidos'
 import routesAdminLogin from './routes/adminLogin'
 import routesDashboard from './routes/dashboard'
+import routesAdmins from './routes/admins' 
 
 const app = express()
 const port = 3000
@@ -25,6 +26,7 @@ app.use("/clientes/login", routesLogin)
 app.use("/pedidos", routesPedidos)
 
 // Rotas Administrativas
+app.use("/admins", routesAdmins) // <-- Adicionado
 app.use("/admin/login", routesAdminLogin)
 app.use("/dashboard", routesDashboard)
 

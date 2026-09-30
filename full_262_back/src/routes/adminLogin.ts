@@ -1,43 +1,47 @@
 import { Router } from "express"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
-import { prisma } from "../../lib/prisma"
+import { prisma } from "../lib/prisma"
 
 const router = Router()
 
+// POST /admin/login - Autenticação do Administrador
 router.post("/", async (req, res) => {
   const { email, senha } = req.body
-  const mensaPadrao = "E-mail ou senha de administrador incorretos"
 
+  // 1. Validação de recebimento dos dados
   if (!email || !senha) {
-    res.status(400).json({ erro: mensaPadrao })
+    res.status(400).json({ erro: "Erro 1: E-mail e senha são obrigatórios" })
     return
   }
 
   try {
+    // 2. Busca do administrador no banco
     const admin = await prisma.admin.findUnique({
-      where: { email }
+      where: { email },
     })
 
     if (!admin) {
-      res.status(400).json({ erro: mensaPadrao })
+      res.status(400).json({ erro: "Erro 2: Administrador não encontrado com este e-mail" })
       return
     }
 
+    // 3. Comparação de senha via Bcrypt
     const senhaValida = await bcrypt.compare(senha, admin.senha)
 
     if (!senhaValida) {
-      res.status(400).json({ erro: mensaPadrao })
+      res.status(400).json({ erro: "Erro 3: Senha incorreta (ou armazenada sem hash Bcrypt no banco)" })
       return
     }
 
+    // Gerar Token JWT
     const jwtSecret = process.env.JWT_KEY || "sua_chave_secreta_admin"
 
     const token = jwt.sign(
       {
         adminLogadoId: admin.id,
         adminLogadoNome: admin.nome,
-        adminLogadoEmail: admin.email
+        adminLogadoEmail: admin.email,
       },
       jwtSecret,
       { expiresIn: "8h" }
@@ -47,9 +51,10 @@ router.post("/", async (req, res) => {
       id: admin.id,
       nome: admin.nome,
       email: admin.email,
-      token
+      token,
     })
   } catch (error) {
+    console.error("Erro no login:", error)
     res.status(500).json({ erro: "Erro interno no servidor ao realizar login do admin" })
   }
 })
