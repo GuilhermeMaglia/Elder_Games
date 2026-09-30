@@ -1,147 +1,121 @@
-import { useForm } from "react-hook-form"
-import { Link, useNavigate } from "react-router-dom"
-import { toast } from "sonner"
-
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-
-import './CadCliente.css'
-
-// ... não precisa mais com o Zod
-// type Inputs = {
-//     nome: string
-//     email: string
-//     cidade: string
-//     senha: string
-//     senha2: string
-// }
-
-// Schema Zod com validações
-const schema = z.object({
-    nome: z.string()
-        .min(6, "Nome deve ter pelo menos 6 caracteres")
-        .max(60, "Nome deve ter no máximo 60 caracteres")
-        .refine(value => value.includes(' '), {
-            message: "Informe o nome completo (nome e sobrenome)",
-        }),
-    email: z.email("Formato de email inválido")
-        .toLowerCase(),
-    cidade: z.string()
-        .min(3, "Cidade deve ter pelo menos 3 caracteres"),
-    // exemplos de validação de outros tipos de campo
-    //   idade: z.coerce.number()
-    //     .min(18, "Idade mínima: 18 anos")
-    //     .max(100, "Idade máxima: 100 anos"),
-    //   curso: z.enum(["ADS", "Redes", "Mkt"], {
-    //     errorMap: () => ({ message: "Selecione um curso" })
-    senha: z.string()
-        .min(8, "Senha deve ter pelo menos 8 caracteres")
-        .regex(/[a-z]/, "Senha deve conter, no mínimo, uma letra minúscula")
-        .regex(/[A-Z]/, "Senha deve conter, no mínimo, uma letra maiúscula")
-        .regex(/[0-9]/, "Senha deve conter, no mínimo, um número").regex(/[A-Z]/, "Senha deve conter uma letra maiúscula")
-        .regex(/[!@#$%^&*]/, "Senha deve conter, no mínimo, um caractere especial"),
-    senha2: z.string()
-}).refine((data) => data.senha == data.senha2, {  // Validação cross-field
-    message: "Senhas não coincidem",
-    path: ["senha2"]  // Erro aparece no campo senha2
-})
-
-type FormData = z.infer<typeof schema>
+import { useState } from "react"
+import { useNavigate, Link } from "react-router-dom"
 
 const apiUrl = import.meta.env.VITE_API_URL
 
 export default function CadCliente() {
-    const { register, handleSubmit, setError, formState: { errors } } = useForm<FormData>({
-        resolver: zodResolver(schema)  // Validação Zod
-    });
+  const [nome, setNome] = useState("")
+  const [email, setEmail] = useState("")
+  const [senha, setSenha] = useState("")
+  const [cpf, setCpf] = useState("")
 
-    const navigate = useNavigate()
+  const navigate = useNavigate()
 
-    async function cadastraCliente(data: FormData) {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
 
-        const response = await
-            fetch(`${apiUrl}/clientes`, {
-                headers: { "Content-Type": "application/json" },
-                method: "POST",
-                body: JSON.stringify({
-                    nome: data.nome,
-                    cidade: data.cidade,
-                    email: data.email,
-                    senha: data.senha
-                })
-            })
+    try {
+      const response = await fetch(`${apiUrl}/clientes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome, email, senha, cpf }),
+      })
 
-
-        if (response.status == 201) {
-            toast.success("Ok! Cadastro realizado com sucesso...")
-            // carrega a página principal, após login do cliente
-            setTimeout(() => {
-                navigate("/login")
-            }, 3000)  // Aguarda 3 segundos (3000 ms)
-        } else {
-            
-            const responseData = await response.json()
-            console.log(responseData)
-            // Erro específico de e-mail duplicado
-            if (responseData.erro == "E-mail já cadastrado") {
-                setError("email", { type: "server", message: responseData.erro })
-                toast.error(responseData.erro)
-                return
-            }
-            // Outros erros genéricos
-            toast.error(responseData.erro)
-        }
-
+      if (response.ok) {
+        alert("Conta criada com sucesso! Faça login para continuar.")
+        navigate("/login")
+      } else {
+        const erro = await response.json()
+        alert(erro.erro || "Erro ao cadastrar cliente.")
+      }
+    } catch (error) {
+      console.error("Erro ao conectar com a API:", error)
+      alert("Erro de conexão com o servidor.")
     }
+  }
 
-    return (
-        <section className="bg-gray-50 dark:bg-gray-900">
-            <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
-                <div className="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
-                    <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
-                        <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-                            Cadastro de Cliente
-                        </h1>
-                        <form className="space-y-4 md:space-y-6"
-                            onSubmit={handleSubmit(cadastraCliente)}>
-                            <div>
-                                <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nome:</label>
-                                <input type="text" id="nome" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Seu nome completo" required
-                                    {...register("nome")} />
-                                {errors.nome && <p role="alert" className="error">{errors.nome.message}</p>}
-                            </div>
-                            <div>
-                                <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">E-mail:</label>
-                                <input type="email" id="email" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="nome@gmail.com" required
-                                    {...register("email")} />
-                                {errors.email && <p role="alert" className="error">{errors.email.message}</p>}
-                            </div>
-                            <div>
-                                <label htmlFor="cidade" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Cidade:</label>
-                                <input type="text" id="cidade" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Sua cidade" required
-                                    {...register("cidade")} />
-                                {errors.cidade && <p role="alert" className="error">{errors.cidade.message}</p>}
-                            </div>
-                            <div>
-                                <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Senha de Acesso:</label>
-                                <input type="password" id="password" placeholder="••••••••" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required
-                                    {...register("senha")} />
-                                {errors.senha && <p role="alert" className="error">{errors.senha.message}</p>}
-                            </div>
-                            <div>
-                                <label htmlFor="confirm-password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Confirme a Senha:</label>
-                                <input type="password" id="confirm-password" placeholder="••••••••" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required
-                                    {...register("senha2")} />
-                                {errors.senha2 && <p role="alert" className="error">{errors.senha2.message}</p>}
-                            </div>
-                            <button type="submit" className="w-full text-white bg-amber-600 hover:bg-amber-700 focus:ring-4 focus:outline-none focus:ring-amber-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-amber-400 dark:hover:bg-amber-500 dark:focus:ring-amber-800">Criar sua Conta</button>
-                            <p className="text-sm font-light text-gray-500 dark:text-gray-400">
-                                Já possui uma conta? <Link to="/login" className="font-medium text-primary-600 hover:underline dark:text-primary-500">Faça Login</Link>
-                            </p>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </section>
-    )
+  return (
+    <div className="min-h-screen bg-[#1C1C1E] text-white flex items-center justify-center px-4 py-8">
+      <div className="bg-[#242426] border border-[#C89B3C]/30 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+        <h2 className="text-2xl font-bold text-[#E5BD55] mb-2 text-center">
+          Criar Conta de Cliente
+        </h2>
+        <p className="text-xs text-gray-400 text-center mb-6">
+          Preencha os dados abaixo para se cadastrar na loja
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Nome Completo
+            </label>
+            <input
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              required
+              placeholder="Seu nome"
+              className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-[#E5BD55]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              CPF
+            </label>
+            <input
+              type="text"
+              value={cpf}
+              onChange={(e) => setCpf(e.target.value)}
+              required
+              placeholder="000.000.000-00"
+              className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-[#E5BD55]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              E-mail
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="seu@email.com"
+              className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-[#E5BD55]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Senha
+            </label>
+            <input
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+              placeholder="••••••••"
+              className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-[#E5BD55]"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-3 mt-4 bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] text-black font-bold rounded-lg hover:brightness-110 transition-all shadow-md"
+          >
+            Cadastrar
+          </button>
+        </form>
+
+        <p className="text-center text-xs text-gray-400 mt-6">
+          Já tem uma conta?{" "}
+          <Link to="/login" className="text-[#E5BD55] hover:underline font-semibold">
+            Faça Login
+          </Link>
+        </p>
+      </div>
+    </div>
+  )
 }

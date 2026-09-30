@@ -1,162 +1,166 @@
 import { useEffect, useState } from "react"
-import { useParams, Link } from "react-router-dom"
-import { useForm } from "react-hook-form"
-import { toast } from "sonner"
+import { useParams, useNavigate, Link } from "react-router-dom"
 import { useClienteStore } from "./context/ClienteContext"
 import type { ProdutoType } from "./utils/ProdutoType"
 
 const apiUrl = import.meta.env.VITE_API_URL
 
-type Inputs = {
-  descricao: string
-}
-
 export default function Detalhes() {
-  const { id } = useParams()
-  const [produto, setProduto] = useState<ProdutoType | null>(null)
-  const [fotoPrincipal, setFotoPrincipal] = useState<string>("")
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { cliente } = useClienteStore()
-  const { register, handleSubmit, reset } = useForm<Inputs>()
+
+  const [produto, setProduto] = useState<ProdutoType | null>(null)
+  const [descricao, setDescricao] = useState<string>("")
+  const [enviando, setEnviando] = useState<boolean>(false)
 
   useEffect(() => {
     async function buscaProduto() {
-      const response = await fetch(`${apiUrl}/produtos/${id}`)
-      const dados = await response.json()
-      setProduto(dados)
-      
-      // Define a primeira foto como principal por padrão
-      if (dados.fotos && dados.fotos.length > 0) {
-        setFotoPrincipal(dados.fotos[0].url)
+      try {
+        const response = await fetch(`${apiUrl}/produtos/${id}`)
+        if (response.ok) {
+          const dados = await response.json()
+          setProduto(dados)
+        }
+      } catch (error) {
+        console.error("Erro ao buscar detalhes do produto:", error)
       }
     }
-    buscaProduto()
+
+    if (id) {
+      buscaProduto()
+    }
   }, [id])
 
-  async function enviaPedido(data: Inputs) {
-    if (!cliente.id) {
-      toast.error("Você precisa estar logado para realizar um pedido.")
-      return
-    }
+  async function enviaPedido(e: React.FormEvent) {
+  e.preventDefault()
 
+  // Procura a chave de ID do cliente guardada durante o login
+  const idCliente =
+    cliente?.id ||
+    localStorage.getItem("clienteKey") ||
+    localStorage.getItem("clienteId")
+
+  if (!idCliente) {
+    alert("Por favor, faça login para realizar um pedido.")
+    navigate("/login")
+    return
+  }
+
+  if (!produto) return
+
+  setEnviando(true)
+
+  // Monta o payload testando a conversão do ID para número
+  const bodyData = {
+    clienteId: isNaN(Number(idCliente)) ? idCliente : Number(idCliente),
+    produtoId: isNaN(Number(produto.id)) ? produto.id : Number(produto.id),
+    descricao: descricao,
+    proposta: descricao, // Envia também como 'proposta' caso o teu backend use esse nome
+  }
+
+  console.log("Enviando pedido para:", `${apiUrl}/pedidos`, bodyData)
+
+  try {
     const response = await fetch(`${apiUrl}/pedidos`, {
-      headers: {
-        "Content-Type": "application/json"
-      },
       method: "POST",
-      body: JSON.stringify({
-        clienteId: cliente.id,
-        produtoId: Number(id),
-        descricao: data.descricao
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(bodyData),
     })
 
-    if (response.status === 201) {
-      toast.success("Pedido realizado com sucesso!")
-      reset()
+    if (response.ok) {
+      alert("Proposta / Pedido enviado com sucesso!")
+      navigate("/meusPedidos")
     } else {
-      toast.error("Erro: Não foi possível registrar o seu pedido.")
+      const erroDados = await response.json().catch(() => null)
+      console.error("Erro da API ao criar pedido:", response.status, erroDados)
+      
+      const mensagemErro =
+        erroDados?.erro ||
+        erroDados?.message ||
+        `Erro ${response.status} ao processar o pedido no servidor.`
+        
+      alert(`Falha no envio: ${mensagemErro}`)
     }
+  } catch (error) {
+    console.error("Erro de rede/conexão:", error)
+    alert("Erro ao conectar com o servidor. Verifica se a tua API backend está a correr.")
+  } finally {
+    setEnviando(false)
   }
+}
 
   if (!produto) {
     return (
-      <div className="min-h-screen bg-[#1C1C1E] flex items-center justify-center text-[#E5BD55]">
-        Carregando detalhes do produto...
+      <div className="min-h-screen bg-[#1C1C1E] text-white flex items-center justify-center">
+        <p className="text-xl font-semibold text-[#E5BD55] animate-pulse">
+          A carregar detalhes do jogo... 🎮
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#1C1C1E] text-white py-8 px-4">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 bg-[#242426] p-6 rounded-2xl border border-[#C89B3C]/30 shadow-xl">
+    <div className="min-h-screen bg-[#1C1C1E] text-white py-10 px-4">
+      <div className="max-w-4xl mx-auto bg-[#242426] border border-[#C89B3C]/30 rounded-2xl p-6 md:p-8 shadow-2xl">
         
-        {/* Galeria de Fotos */}
-        <div className="flex flex-col gap-4">
-          <div className="w-full h-80 bg-[#E3E3E3] rounded-xl overflow-hidden flex items-center justify-center border border-[#C89B3C]/30">
-            <img 
-              src={fotoPrincipal || "/placeholder-game.png"} 
-              alt={produto.nome} 
-              className="w-full h-full object-cover"
+        <Link
+          to="/"
+          className="inline-block text-sm text-[#E5BD55] hover:underline mb-6"
+        >
+          ← Voltar para a loja
+        </Link>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          {/* Imagem do Produto */}
+          <div className="bg-[#1C1C1E] p-4 rounded-xl border border-[#C89B3C]/20 flex items-center justify-center">
+            <img
+              src={produto.foto || "/placeholder-game.png"}
+              alt={produto.titulo}
+              className="max-h-80 object-contain rounded-lg"
             />
           </div>
 
-          {/* Miniaturas de Fotos */}
-          {produto.fotos && produto.fotos.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {produto.fotos.map((foto) => (
-                <button
-                  key={foto.id}
-                  onClick={() => setFotoPrincipal(foto.url)}
-                  className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                    fotoPrincipal === foto.url ? "border-[#E5BD55]" : "border-transparent opacity-60"
-                  }`}
-                >
-                  <img src={foto.url} alt="Miniatura" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Informações do Produto & Form de Pedido */}
-        <div className="flex flex-col justify-between">
+          {/* Informações e Formulário */}
           <div>
-            <div className="flex justify-between items-start">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#D2AC67] bg-clip-text text-transparent">
-                {produto.nome}
-              </h1>
-              {produto.marca?.nome && (
-                <span className="bg-[#1C1C1E] text-[#E5BD55] text-xs font-bold px-3 py-1.5 rounded-lg border border-[#C89B3C]/40">
-                  {produto.marca.nome}
-                </span>
-              )}
-            </div>
-
-            <p className="text-2xl font-extrabold text-[#E5BD55] mt-3">
-              R$: {Number(produto.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            <h1 className="text-3xl font-extrabold text-[#E5BD55] mb-2">
+              {produto.titulo}
+            </h1>
+            <p className="text-[#C89B3C] font-semibold text-2xl mb-4">
+              R${" "}
+              {Number(produto.preco).toLocaleString("pt-BR", {
+                minimumFractionDigits: 2,
+              })}
             </p>
 
-            <div className="mt-4 space-y-2 text-sm text-gray-300">
-              <p><b>Categoria:</b> {produto.categoria?.nome || "Geral"}</p>
-              <p><b>Ano de Lançamento:</b> {produto.ano}</p>
-              <p><b>Disponibilidade:</b> {produto.quant > 0 ? `${produto.quant} unidades em estoque` : "Esgotado"}</p>
-            </div>
+            <p className="text-gray-300 text-sm mb-6">
+              {produto.descricao || "Sem descrição disponível."}
+            </p>
 
-            <div className="mt-4 pt-4 border-t border-[#C89B3C]/20">
-              <h3 className="text-sm font-semibold text-[#E5BD55] mb-1">Descrição:</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">{produto.descricao}</p>
-            </div>
-          </div>
+            {/* Form de Envio da Proposta / Pedido */}
+            <form onSubmit={enviaPedido} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Observações / Proposta:
+                </label>
+                <textarea
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
+                  placeholder="Escreva alguma observação ou proposta para este item..."
+                  className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-[#E5BD55]"
+                  rows={3}
+                />
+              </div>
 
-          {/* Formulário de Pedido */}
-          <form onSubmit={handleSubmit(enviaPedido)} className="mt-6 pt-6 border-t border-[#C89B3C]/20">
-            <label className="block text-sm font-medium text-[#E5BD55] mb-2">
-              Observações / Solicitação do Pedido:
-            </label>
-            <textarea
-              {...register("descricao")}
-              rows={3}
-              placeholder="Ex: Gostaria de saber o prazo de entrega para o meu CEP..."
-              className="w-full p-3 bg-[#1C1C1E] text-white border border-[#C89B3C]/40 rounded-xl focus:outline-none focus:border-[#E5BD55] text-sm"
-              required
-            ></textarea>
-
-            <div className="flex gap-4 mt-4">
-              <Link
-                to="/"
-                className="flex-1 py-3 text-center text-sm font-semibold text-[#E5BD55] bg-transparent border border-[#C89B3C]/50 rounded-xl hover:bg-[#C89B3C]/20 transition-all"
-              >
-                Voltar
-              </Link>
               <button
                 type="submit"
-                disabled={produto.quant <= 0}
-                className="flex-1 py-3 text-sm font-bold text-black bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] hover:brightness-110 rounded-xl transition-all disabled:opacity-50"
+                disabled={enviando}
+                className="w-full py-3 bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] text-black font-bold rounded-lg hover:brightness-110 transition-all shadow-md disabled:opacity-50"
               >
-                Fazer Pedido
+                {enviando ? "A enviar..." : "Fazer Pedido / Proposta"}
               </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
 
       </div>

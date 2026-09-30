@@ -1,12 +1,10 @@
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { toast } from "sonner"
-// Aponta para o context que está dentro da pasta admin:
-import { useAdminStore } from "./context/AdminContext" 
-// Aponta para o Titulo específico do admin:
-import { Titulo } from "./components/Titulo" 
+import { useAdminStore } from "./context/AdminContext"
+import Titulo from "../components/Titulo"
 
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"
+const apiUrl = import.meta.env.VITE_API_URL
 
 export default function AdminLogin() {
   const [modoCadastro, setModoCadastro] = useState(false)
@@ -18,63 +16,59 @@ export default function AdminLogin() {
   const navigate = useNavigate()
   const { logaAdmin } = useAdminStore()
 
-async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault()
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
 
-  const urlBase = apiUrl || "http://localhost:3000"
-  const rota = modoCadastro ? `${urlBase}/admins` : `${urlBase}/admin/login`
-  const body = modoCadastro ? { nome, email, senha } : { email, senha }
+    const rota = modoCadastro ? `${apiUrl}/admins` : `${apiUrl}/admins/login`
+    const body = modoCadastro ? { nome, email, senha } : { email, senha }
 
-  try {
-    const response = await fetch(rota, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json" 
-      },
-      body: JSON.stringify(body),
-    })
+    try {
+      const response = await fetch(rota, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
 
-    const data = await response.json().catch(() => ({}))
+      if (response.ok) {
+        const adminDados = await response.json()
 
-    if (!response.ok) {
-      // Exibe a mensagem de erro exata retornada pelo backend (Erro 1, Erro 2 ou Erro 3)
-      toast.error(data.erro || "Dados inválidos.")
-      return
-    }
+        logaAdmin(adminDados)
 
-    logaAdmin(data)
+        localStorage.removeItem("adminKey")
+        sessionStorage.removeItem("adminKey")
 
-    localStorage.removeItem("adminKey")
-    sessionStorage.removeItem("adminKey")
+        const key = adminDados.token || adminDados.id
+        if (manterConectado) {
+          localStorage.setItem("adminKey", String(key))
+        } else {
+          sessionStorage.setItem("adminKey", String(key))
+        }
 
-    const key = data.token || data.id
-    if (key) {
-      if (manterConectado) {
-        localStorage.setItem("adminKey", String(key))
+        toast.success(
+          modoCadastro
+            ? "Administrador cadastrado com sucesso!"
+            : "Login de Admin efetuado!"
+        )
+        navigate("/admin")
       } else {
-        sessionStorage.setItem("adminKey", String(key))
+        const erro = await response.json()
+        toast.error(erro.erro || "Falha na autenticação do administrador.")
       }
+    } catch (error) {
+      console.error("Erro na requisição:", error)
+      toast.error("Erro ao conectar com o servidor.")
     }
-
-    toast.success(
-      modoCadastro
-        ? "Administrador cadastrado com sucesso!"
-        : "Login de Admin efetuado!"
-    )
-    navigate("/admin")
-
-  } catch (error) {
-    console.error("Erro na requisição:", error)
-    toast.error("Erro ao conectar com o servidor. Verifique o backend.")
   }
-}
 
   return (
     <div className="min-h-screen bg-[#1C1C1E] text-white flex flex-col">
+      {/* Cabeçalho do Projeto */}
       <Titulo />
 
+      {/* Conteúdo Central do Login */}
       <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="bg-[#242426] border border-[#E5BD55]/40 rounded-2xl p-8 max-w-md w-full shadow-2xl relative z-10">
+        <div className="bg-[#242426] border border-[#E5BD55]/40 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+          
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] bg-clip-text text-transparent">
               {modoCadastro ? "Cadastrar Admin" : "Painel do Administrador"}
@@ -149,7 +143,7 @@ async function handleSubmit(e: React.FormEvent) {
 
             <button
               type="submit"
-              className="w-full py-3 mt-4 bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] text-black font-bold rounded-lg hover:brightness-110 transition-all shadow-md cursor-pointer"
+              className="w-full py-3 mt-4 bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] text-black font-bold rounded-lg hover:brightness-110 transition-all shadow-md"
             >
               {modoCadastro ? "Cadastrar" : "Entrar"}
             </button>
@@ -159,17 +153,14 @@ async function handleSubmit(e: React.FormEvent) {
             <button
               type="button"
               onClick={() => setModoCadastro(!modoCadastro)}
-              className="text-[#E5BD55] hover:underline cursor-pointer"
+              className="text-[#E5BD55] hover:underline"
             >
               {modoCadastro
                 ? "Já possui conta? Fazer Login"
                 : "Criar novo perfil de Administrador"}
             </button>
 
-            <Link
-              to="/"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
+            <Link to="/" className="text-gray-400 hover:text-white transition-colors">
               ← Voltar para a Loja
             </Link>
           </div>

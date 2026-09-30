@@ -10,7 +10,7 @@ import Detalhes from './Detalhes.tsx'
 import MeusPedidos from './MeusPedidos.tsx'
 import CadCliente from './CadCliente.tsx'
 
-// ----------------- Rotas de Admin
+// Rotas e Páginas do Admin
 import AdminLayout from './admin/AdminLayout.tsx'
 import AdminLogin from './admin/AdminLogin.tsx'
 import AdminDashboard from './admin/AdminDashboard.tsx'
@@ -19,10 +19,13 @@ import AdminNovoProduto from './admin/AdminNovoProduto.tsx'
 import AdminPedidos from './admin/AdminPedidos.tsx'
 
 const rotas = createBrowserRouter([
+  // Rota Pública de Autenticação do Admin
   {
     path: "/admin/login",
     element: <AdminLogin />,
   },
+  
+  // Painel Administrativo Protegido
   {
     path: "/admin",
     element: <AdminLayout />,
@@ -33,6 +36,8 @@ const rotas = createBrowserRouter([
       { path: "pedidos", element: <AdminPedidos /> },
     ],
   },
+
+  // Área Pública e do Cliente
   {
     path: '/',
     element: <Layout />,
@@ -40,7 +45,7 @@ const rotas = createBrowserRouter([
       { index: true, element: <App /> },
       { path: 'login', element: <Login /> },
       { path: 'detalhes/:id', element: <Detalhes /> },
-      { path: 'meus-pedidos', element: <MeusPedidos /> },
+      { path: 'meusPedidos', element: <MeusPedidos /> },
       { path: 'cadCliente', element: <CadCliente /> },
     ],
   },

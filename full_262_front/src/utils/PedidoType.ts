@@ -6,6 +6,7 @@ export type PedidoType = {
   produtoId: number
   produto: ProdutoType
   descricao: string
+  resposta?: string
   status: string
   createdAt: string
   updatedAt: string | null

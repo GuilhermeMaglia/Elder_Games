@@ -1,230 +1,117 @@
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { useNavigate, Link } from "react-router-dom";
-import { toast } from "sonner";
-import type { MarcaType } from "../utils/MarcaType";
-import type { CategoriaType } from "../utils/CategoriaType";
-import { useAdminStore } from "./context/AdminContext";
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
 
-const apiUrl = import.meta.env.VITE_API_URL;
-
-type Inputs = {
-  nome: string;
-  preco: number;
-  quant: number;
-  ano: number;
-  descricao: string;
-  marcaId: number;
-  categoriaId: number;
-  foto1: string;
-  foto2?: string;
-  foto3?: string;
-};
+const apiUrl = import.meta.env.VITE_API_URL
 
 export default function AdminNovoProduto() {
-  const [marcas, setMarcas] = useState<MarcaType[]>([]);
-  const [categorias, setCategorias] = useState<CategoriaType[]>([]);
-  const { admin } = useAdminStore();
-  const navigate = useNavigate();
+  const [titulo, setTitulo] = useState("")
+  const [genero, setGenero] = useState("")
+  const [preco, setPreco] = useState("")
+  const [foto, setFoto] = useState("")
+  const [descricao, setDescricao] = useState("")
+  
+  const navigate = useNavigate()
 
-  const { register, handleSubmit, reset } = useForm<Inputs>();
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
 
-  useEffect(() => {
-    async function buscaSelects() {
-      const resMarcas = await fetch(`${apiUrl}/marcas`);
-      const dadosMarcas = await resMarcas.json();
-      setMarcas(dadosMarcas);
-
-      const resCategorias = await fetch(`${apiUrl}/categorias`);
-      const dadosCategorias = await resCategorias.json();
-      setCategorias(dadosCategorias);
-    }
-    buscaSelects();
-  }, []);
-
-  async function cadastraProduto(data: Inputs) {
     try {
-      // 1. Cadastra o produto
-      const responseProduto = await fetch(`${apiUrl}/produtos`, {
+      const response = await fetch(`${apiUrl}/produtos`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${admin.token}`
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nome: data.nome,
-          preco: Number(data.preco),
-          quant: Number(data.quant),
-          ano: Number(data.ano),
-          descricao: data.descricao,
-          marcaId: Number(data.marcaId),
-          categoriaId: Number(data.categoriaId)
-        })
-      });
+          titulo,
+          genero,
+          preco: Number(preco),
+          foto,
+          descricao,
+        }),
+      })
 
-      if (!responseProduto.ok) {
-        toast.error("Erro ao cadastrar produto.");
-        return;
+      if (response.ok) {
+        toast.success("Produto cadastrado com sucesso!")
+        navigate("/admin/produtos")
+      } else {
+        const erro = await response.json()
+        toast.error(erro.erro || "Erro ao cadastrar produto.")
       }
-
-      const produtoCriado = await responseProduto.json();
-
-      // 2. Cadastra as fotos associadas ao produto
-      const fotos = [data.foto1, data.foto2, data.foto3].filter(Boolean);
-
-      for (const url of fotos) {
-        if (url) {
-          await fetch(`${apiUrl}/fotos`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${admin.token}`
-            },
-            body: JSON.stringify({
-              url,
-              produtoId: produtoCriado.id
-            })
-          });
-        }
-      }
-
-      toast.success("Produto e fotos cadastrados com sucesso!");
-      reset();
-      navigate("/admin/produtos");
     } catch (error) {
-      toast.error("Falha na comunicação com o servidor.");
+      console.error("Erro na requisição:", error)
+      toast.error("Erro ao conectar com o servidor.")
     }
   }
 
   return (
-    <div className="max-w-4xl mx-auto m-4 mt-24 p-6 bg-[#1C1C1E] rounded-2xl border border-[#C89B3C]/30 shadow-xl text-white">
-      <h1 className="text-3xl font-extrabold mb-6">
-        Cadastrar{" "}
-        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820]">
-          Novo Produto
-        </span>
-      </h1>
+    <div className="max-w-2xl mx-auto bg-[#242426] border border-[#C89B3C]/30 p-6 rounded-xl shadow-xl">
+      <h2 className="text-xl font-bold text-[#E5BD55] mb-6">Cadastrar Novo Produto</h2>
 
-      <form onSubmit={handleSubmit(cadastraProduto)} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-[#E5BD55]">Nome do Produto / Jogo</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Título do Jogo</label>
           <input
             type="text"
-            {...register("nome")}
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
             required
-            className="w-full p-3 mt-1 bg-[#242426] border border-[#C89B3C]/40 rounded-xl focus:outline-none focus:border-[#E5BD55] text-white"
-            placeholder="Ex: Play Station 5 / Elden Ring"
+            className="w-full bg-[#1C1C1E] border border-gray-700 rounded-lg p-2.5 text-white text-sm focus:border-[#E5BD55] outline-none"
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#E5BD55]">Preço (R$)</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Gênero</label>
+            <input
+              type="text"
+              value={genero}
+              onChange={(e) => setGenero(e.target.value)}
+              required
+              className="w-full bg-[#1C1C1E] border border-gray-700 rounded-lg p-2.5 text-white text-sm focus:border-[#E5BD55] outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Preço (R$)</label>
             <input
               type="number"
               step="0.01"
-              {...register("preco")}
+              value={preco}
+              onChange={(e) => setPreco(e.target.value)}
               required
-              className="w-full p-3 mt-1 bg-[#242426] border border-[#C89B3C]/40 rounded-xl focus:outline-none focus:border-[#E5BD55] text-white"
+              className="w-full bg-[#1C1C1E] border border-gray-700 rounded-lg p-2.5 text-white text-sm focus:border-[#E5BD55] outline-none"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#E5BD55]">Quantidade em Estoque</label>
-            <input
-              type="number"
-              {...register("quant")}
-              required
-              className="w-full p-3 mt-1 bg-[#242426] border border-[#C89B3C]/40 rounded-xl focus:outline-none focus:border-[#E5BD55] text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#E5BD55]">Ano de Lançamento</label>
-            <input
-              type="number"
-              {...register("ano")}
-              required
-              className="w-full p-3 mt-1 bg-[#242426] border border-[#C89B3C]/40 rounded-xl focus:outline-none focus:border-[#E5BD55] text-white"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-[#E5BD55]">Marca / Desenvolvedora</label>
-            <select
-              {...register("marcaId")}
-              required
-              className="w-full p-3 mt-1 bg-[#242426] border border-[#C89B3C]/40 rounded-xl focus:outline-none focus:border-[#E5BD55] text-white"
-            >
-              <option value="">Selecione a marca...</option>
-              {marcas.map(m => (
-                <option key={m.id} value={m.id}>{m.nome}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#E5BD55]">Categoria</label>
-            <select
-              {...register("categoriaId")}
-              required
-              className="w-full p-3 mt-1 bg-[#242426] border border-[#C89B3C]/40 rounded-xl focus:outline-none focus:border-[#E5BD55] text-white"
-            >
-              <option value="">Selecione a categoria...</option>
-              {categorias.map(c => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
-              ))}
-            </select>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[#E5BD55]">Descrição detalhada</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">URL da Imagem</label>
+          <input
+            type="url"
+            value={foto}
+            onChange={(e) => setFoto(e.target.value)}
+            required
+            placeholder="https://..."
+            className="w-full bg-[#1C1C1E] border border-gray-700 rounded-lg p-2.5 text-white text-sm focus:border-[#E5BD55] outline-none"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Descrição</label>
           <textarea
-            {...register("descricao")}
-            rows={3}
+            rows={4}
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
             required
-            className="w-full p-3 mt-1 bg-[#242426] border border-[#C89B3C]/40 rounded-xl focus:outline-none focus:border-[#E5BD55] text-white"
-          ></textarea>
-        </div>
-
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-[#E5BD55]">URLs das Fotos</label>
-          <input
-            type="url"
-            {...register("foto1")}
-            required
-            placeholder="URL da foto principal"
-            className="w-full p-3 bg-[#242426] border border-[#C89B3C]/40 rounded-xl focus:outline-none focus:border-[#E5BD55] text-white"
-          />
-          <input
-            type="url"
-            {...register("foto2")}
-            placeholder="URL da foto 2 (Opcional)"
-            className="w-full p-3 bg-[#242426] border border-[#C89B3C]/40 rounded-xl focus:outline-none focus:border-[#E5BD55] text-white"
-          />
-          <input
-            type="url"
-            {...register("foto3")}
-            placeholder="URL da foto 3 (Opcional)"
-            className="w-full p-3 bg-[#242426] border border-[#C89B3C]/40 rounded-xl focus:outline-none focus:border-[#E5BD55] text-white"
+            className="w-full bg-[#1C1C1E] border border-gray-700 rounded-lg p-2.5 text-white text-sm focus:border-[#E5BD55] outline-none"
           />
         </div>
 
-        <div className="flex gap-4 pt-4">
-          <Link
-            to="/admin/produtos"
-            className="flex-1 py-3 text-center text-sm font-semibold text-[#E5BD55] border border-[#C89B3C]/50 rounded-xl hover:bg-[#C89B3C]/20 transition-all"
-          >
-            Cancelar
-          </Link>
-          <button
-            type="submit"
-            className="flex-1 py-3 text-sm font-bold text-black bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] hover:brightness-110 rounded-xl transition-all shadow-lg"
-          >
-            Salvar Produto
-          </button>
-        </div>
+        <button
+          type="submit"
+          className="w-full py-3 bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] text-black font-bold rounded-lg hover:brightness-110 transition-all shadow-md"
+        >
+          Salvar Produto
+        </button>
       </form>
     </div>
-  );
+  )
 }
