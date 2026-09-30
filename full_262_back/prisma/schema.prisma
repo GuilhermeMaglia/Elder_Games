@@ -1,10 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../generated/prisma"
 }
 
@@ -40,21 +35,19 @@ model Categoria {
 }
 
 model Produto {
-  id          Int        @id @default(autoincrement())
-  titulo      String     @db.VarChar(60)
-  descricao   String?    @db.Text
-  preco       Decimal    @db.Decimal(10, 2)
-  foto        String     @db.Text
-  destaque    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id          Int       @id @default(autoincrement())
+  titulo      String    @db.VarChar(100)
+  descricao   String?   @db.Text
+  ano         Int
+  preco       Decimal   @db.Decimal(9, 2)
+  foto        String    @db.Text
+  quant       Int       @default(0)
+  destaque    Boolean   @default(true)
   
-  marca       Marca      @relation(fields: [marcaId], references: [id])
   marcaId     Int
-  
-  categoria   Categoria  @relation(fields: [categoriaId], references: [id])
+  marca       Marca     @relation(fields: [marcaId], references: [id])
   categoriaId Int
-  
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
   pedidos     Pedido[]
 
   @@map("produtos")

@@ -1,112 +1,122 @@
-import PrismaPkg from '@prisma/client'
-import bcrypt from 'bcrypt'
+import { PrismaClient } from '../generated/prisma'
+import { PrismaPg } from '@prisma/adapter-pg'
 
-// Compatibilidade para carregar o PrismaClient em projetos ES Modules
-const PrismaClient = (PrismaPkg as any).PrismaClient || (PrismaPkg as any).default?.PrismaClient
-const prisma = new PrismaClient()
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+const prisma = new PrismaClient({ adapter })
 
 async function main() {
-  console.log('🌱 Limpando dados antigos...')
+  console.log('🌱 Limpando banco e rodando a seed...')
 
   await prisma.pedido.deleteMany()
   await prisma.produto.deleteMany()
-  await prisma.categoria.deleteMany()
   await prisma.marca.deleteMany()
-  await prisma.admin.deleteMany()
+  await prisma.categoria.deleteMany()
 
-  console.log('🚀 Inserindo Administrador...')
-  const senhaAdminHash = await bcrypt.hash('admin123', 10)
-  
-  await prisma.admin.create({
-    data: {
-      nome: 'Administrador Collector Store',
-      email: 'admin@games.com',
-      senha: senhaAdminHash,
-    },
-  })
-
-  console.log('🚀 Inserindo Fabricantes/Marcas de Colecionáveis...')
-  const prime1 = await prisma.marca.create({ data: { nome: 'Prime 1 Studio' } })
-  const hotToys = await prisma.marca.create({ data: { nome: 'Hot Toys' } })
+  // Criar Marcas
+  const nintendo = await prisma.marca.create({ data: { nome: 'Nintendo' } })
+  const sony = await prisma.marca.create({ data: { nome: 'PlayStation / Sony' } })
+  const squareEnix = await prisma.marca.create({ data: { nome: 'Square Enix' } })
   const pureArts = await prisma.marca.create({ data: { nome: 'PureArts' } })
-  const first4 = await prisma.marca.create({ data: { nome: 'First 4 Figures' } })
-  const goodSmile = await prisma.marca.create({ data: { nome: 'Good Smile Company' } })
+  const darkHorse = await prisma.marca.create({ data: { nome: 'Dark Horse Books' } })
+  const cdProjekt = await prisma.marca.create({ data: { nome: 'CD Projekt Red' } })
 
-  console.log('🚀 Inserindo Categorias de Colecionáveis...')
-  const estatuas = await prisma.categoria.create({ data: { nome: 'Estátuas High-End (1/4)' } })
-  const actionFigures = await prisma.categoria.create({ data: { nome: 'Action Figures (1/6)' } })
-  const replicas = await prisma.categoria.create({ data: { nome: 'Réplicas & Adereços' } })
-  const edicoesLimitadas = await prisma.categoria.create({ data: { nome: 'Edições de Colecionador' } })
+  // Criar Categorias
+  const estatuas = await prisma.categoria.create({ data: { nome: 'Estátuas & Action Figures' } })
+  const edicoesEspeciais = await prisma.categoria.create({ data: { nome: 'Edições Limitadas de Jogos' } })
+  const retroConsoles = await prisma.categoria.create({ data: { nome: 'Consoles & Hardware Raridades' } })
+  const livrosArtbooks = await prisma.categoria.create({ data: { nome: 'Artbooks & Guias de Luxo' } })
 
-  console.log('🚀 Inserindo Produtos Colecionáveis...')
+  // Criar Produtos
   await prisma.produto.createMany({
     data: [
       {
-        titulo: 'Estátua Geralt de Rívia - The Witcher 3 (Prime 1)',
-        descricao: 'Estátua em resina de alta precisão em escala 1/4 (26 polegadas) retratando Geralt em combate com iluminação LED integrada na base.',
-        preco: 5499.90,
-        foto: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=800&auto=format&fit=crop',
-        destaque: true,
-        marcaId: prime1.id,
-        categoriaId: estatuas.id,
-      },
-      {
-        titulo: 'Action Figure Ellie - The Last of Us Part II (PureArts)',
-        descricao: 'Figura articulada em escala 1/6 com roupas em tecido real, mochila detalhada, arco, flechas e armas trocáveis.',
-        preco: 1899.00,
-        foto: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop',
+        titulo: "Estátua Geralt de Rívia (Grandmaster Ursine) 1/4 - PureArts",
+        descricao: "Estátua em resina de altíssima fidelidade com iluminação LED na base. Edição numerada com apenas 1.000 unidades no mundo.",
+        ano: 2023,
+        preco: 4250.00,
+        foto: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQl_j7wk_yIqtHStboco3A_5KZNkwT_OaCtPwThK3IaHgxY2pzv9zdoYhc&s=10",
+        quant: 2,
         destaque: true,
         marcaId: pureArts.id,
-        categoriaId: actionFigures.id,
+        categoriaId: estatuas.id
       },
       {
-        titulo: 'Réplica Mjölnir - God of War Ragnarök',
-        descricao: 'Réplica em tamanho real (1:1) de alta densidade e acabamento metálico envelhecido, acompanhada de base expositora com runas iluminadas.',
-        preco: 2299.50,
-        foto: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=800&auto=format&fit=crop',
+        titulo: "The Legend of Zelda: Tears of the Kingdom - Collector's Edition",
+        descricao: "Inclui o jogo em mídia física, Artbook de capa dura, SteelBook oficial, pôster de metal ICONART e conjunto de 4 pins banhados.",
+        ano: 2023,
+        preco: 1499.90,
+        foto: "https://m.media-amazon.com/images/I/51tVyzqhy5L._AC_UF1000,1000_QL80_.jpg",
+        quant: 4,
         destaque: true,
-        marcaId: first4.id,
-        categoriaId: replicas.id,
+        marcaId: nintendo.id,
+        categoriaId: edicoesEspeciais.id
       },
       {
-        titulo: 'Nendoroid Link: Breath of the Wild Ver.',
-        descricao: 'Figura colecionável articulada no estilo chibi com acessórios como a Master Sword, Hylian Shield, arco e Sheikah Slate.',
-        preco: 489.90,
-        foto: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop',
+        titulo: "Console Game Boy Color - Edição Limitada Pokémon Pikachu Yellow (Graduado VGA 85)",
+        descricao: "Item raro de colecionador. Console Game Boy Color original em estado impecável na caixa com selo de autenticidade.",
+        ano: 1998,
+        preco: 8900.00,
+        foto: "https://http2.mlstatic.com/D_NQ_NP_889400-MLB97684423467_112025-O.webp",
+        quant: 1,
+        destaque: true,
+        marcaId: nintendo.id,
+        categoriaId: retroConsoles.id
+      },
+      {
+        titulo: "Livro The Art of Cyberpunk 2077 - Deluxe Hardcover Edition",
+        descricao: "Livro de arte em capa dura acolchoada, acompanha capa protetora estilizada, réplica de mapa de Night City e adesivos temporários de tatuagem.",
+        ano: 2020,
+        preco: 389.90,
+        foto: "https://i.ebayimg.com/images/g/nS4AAeSwvsRp~bgX/s-l300.jpg",
+        quant: 8,
         destaque: false,
-        marcaId: goodSmile.id,
-        categoriaId: actionFigures.id,
+        marcaId: darkHorse.id,
+        categoriaId: livrosArtbooks.id
       },
       {
-        titulo: 'Lâmina Oculta de Basim - Assassin’s Creed Mirage',
-        descricao: 'Réplica vestível e totalmente funcional da lendária Hidden Blade com mecanismo de mola e detalhes gravados à mão.',
-        preco: 899.90,
-        foto: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop',
+        titulo: "Final Fantasy VII Remake - Play Arts Kai: Sephiroth (Edição Limitada)",
+        descricao: "Action figure articulada de 30cm com a asa negra, espada Masamune e múltiplos pares de mãos trocáveis.",
+        ano: 2022,
+        preco: 1850.00,
+        foto: "https://www.1999.co.jp/itbig69/10693910a.jpg",
+        quant: 3,
         destaque: true,
-        marcaId: pureArts.id,
-        categoriaId: replicas.id,
+        marcaId: squareEnix.id,
+        categoriaId: estatuas.id
       },
       {
-        titulo: 'Edição de Colecionador Elden Ring - Malenia Statue',
-        descricao: 'Caixa de colecionador oficial contendo o jogo, Steelbook exclusivo, livro de arte de capa dura e a estátua de 23cm de Malenia - Blade of Miquella.',
-        preco: 3290.00,
-        foto: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop',
+        titulo: "Console PlayStation 5 - Edição Comemorativa 30º Aniversário (Limitada)",
+        descricao: "Console numerado na cor clássica do PS1 original de 1994. Acompanha controle DualSense com cabo retro estilo clássico.",
+        ano: 2024,
+        preco: 9999.00,
+        foto: "https://cdn.awsli.com.br/800x800/1919/1919257/produto/306784008/6456456-glmmeui9ha.jpg",
+        quant: 1,
         destaque: true,
-        marcaId: hotToys.id,
-        categoriaId: edicoesLimitadas.id,
+        marcaId: sony.id,
+        categoriaId: retroConsoles.id
       },
-    ],
+      {
+        titulo: "Elden Ring - Shadow of the Erdtree Collector's Edition",
+        descricao: "Inclui estátua de 46cm do Messmer o Empalador, livro de arte em capa dura com 40 páginas e código da expansão.",
+        ano: 2024,
+        preco: 2890.00,
+        foto: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ412KMGjl9B1B9NMbgvQbvNFtI6kA4mDawU4wj6RCbTw&s=10",
+        quant: 0,
+        destaque: false,
+        marcaId: cdProjekt.id,
+        categoriaId: edicoesEspeciais.id
+      }
+    ]
   })
 
-  console.log('✅ Seed de itens colecionáveis executada com sucesso!')
+  console.log('✅ Seed executada e produtos criados com sucesso!')
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect()
-  })
-  .catch(async (e: any) => {
-    console.error(e)
-    await prisma.$disconnect()
+  .catch((e) => {
+    console.error('❌ Erro durante a execução do seed:', e)
     process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
   })
