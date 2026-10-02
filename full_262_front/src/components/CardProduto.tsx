@@ -2,20 +2,21 @@ import { Link } from "react-router-dom"
 import type { ProdutoType } from "../utils/ProdutoType"
 
 export function CardProduto({ data }: { data: ProdutoType }) {
-  const imagemExibicao = data.fotos && data.fotos.length > 0 
-    ? data.fotos[0].url 
-    : "/placeholder-game.png"
+  if (!data) return null
 
   return (
-    <div className="max-w-sm bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-xl shadow-lg hover:border-[#E5BD55] transition-all duration-300 overflow-hidden flex flex-col justify-between">
-      {/* Área da Imagem do Jogo/Produto */}
-      <div className="w-full h-52 bg-[#E3E3E3] flex items-center justify-center overflow-hidden relative">
+    <div className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-xl shadow-lg hover:border-[#E5BD55] transition-all duration-300 overflow-hidden flex flex-col justify-between">
+      {/* Imagem do Produto - Aumentada de h-52 para h-64 com object-contain */}
+      <div className="w-full h-64 bg-[#2C2C2E] flex items-center justify-center overflow-hidden relative p-2">
         <img 
-          className="w-full h-full object-cover" 
-          src={imagemExibicao} 
-          alt={data.nome} 
+          className="max-w-full max-h-full object-contain" 
+          src={data.foto || "/placeholder-game.png"} 
+          alt={data.titulo} 
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "https://via.placeholder.com/300x200?text=Sem+Imagem"
+          }}
         />
-        {/* Badge de Marca/Fabricante */}
+        {/* Badge da Marca */}
         {data.marca?.nome && (
           <span className="absolute top-2 right-2 bg-[#1C1C1E]/80 text-[#E5BD55] text-xs font-bold px-2.5 py-1 rounded border border-[#C89B3C]/30 backdrop-blur-sm">
             {data.marca.nome}
@@ -26,12 +27,12 @@ export function CardProduto({ data }: { data: ProdutoType }) {
       {/* Conteúdo do Card */}
       <div className="p-5 flex-1 flex flex-col justify-between">
         <div>
-          {/* Nome do Jogo / Produto */}
+          {/* Título */}
           <h5 className="mb-2 text-xl font-bold tracking-tight bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#D2AC67] bg-clip-text text-transparent line-clamp-1">
-            {data.nome}
+            {data.titulo}
           </h5>
           
-          {/* Preço do Produto */}
+          {/* Preço */}
           <p className="mb-2 text-lg font-extrabold text-[#E5BD55]">
             R$: {Number(data.preco).toLocaleString("pt-BR", {
               minimumFractionDigits: 2,
@@ -44,8 +45,8 @@ export function CardProduto({ data }: { data: ProdutoType }) {
             <span>
               Categoria: {data.categoria?.nome || "Geral"}
             </span>
-            <span className={Number(data.quant) > 0 ? "text-emerald-400" : "text-red-400"}>
-              {Number(data.quant) > 0 ? `Estoque: ${data.quant}` : "Esgotado"}
+            <span className={data.quant !== undefined && Number(data.quant) === 0 ? "text-red-400" : "text-emerald-400"}>
+              {data.quant !== undefined ? (Number(data.quant) > 0 ? `Estoque: ${data.quant}` : "Esgotado") : "Disponível"}
             </span>
           </div>
         </div>

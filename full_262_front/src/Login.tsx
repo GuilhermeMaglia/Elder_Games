@@ -1,109 +1,119 @@
-import { useForm } from "react-hook-form"
-
-import { Link, useNavigate } from "react-router-dom";
-
-import { toast } from "sonner"
+import { useState } from "react"
+import { useNavigate, Link } from "react-router-dom"
 import { useClienteStore } from "./context/ClienteContext"
-
-type Inputs = {
-    email: string
-    senha: string
-    manter: boolean
-}
 
 const apiUrl = import.meta.env.VITE_API_URL
 
 export default function Login() {
-    const { register, handleSubmit } = useForm<Inputs>()    
-    const { logaCliente } = useClienteStore()
+  const [email, setEmail] = useState("")
+  const [senha, setSenha] = useState("")
+  const [manterConectado, setManterConectado] = useState(false)
 
-    const navigate = useNavigate()
+  const navigate = useNavigate()
+  const { logaCliente } = useClienteStore()
 
-    async function verificaLogin(data: Inputs) {
-        // alert(`${data.email} ${data.senha} ${data.manter}`)
-        const response = await 
-          fetch(`${apiUrl}/clientes/login`, {
-            headers: {"Content-Type": "application/json"},
-            method: "POST",
-            body: JSON.stringify({ email: data.email, senha: data.senha })
-          })
-        
-        // console.log(response)
-        if (response.status == 200) {
-            // toast.success("Ok!")            
-            const dados = await response.json()
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
 
-            // "coloca" os dados do cliente no contexto
-            logaCliente(dados)
-            
-            // se o cliente indicou que quer se manter conectado
-            // salvamos os dados (id) dele em localStorage
-            if (data.manter) {
-                localStorage.setItem("clienteKey", dados.id)
-            } else {
-                // se indicou que não quer permanecer logado e tem
-                // uma chave (anteriormente) salva, remove-a
-                if (localStorage.getItem("clienteKey")) {
-                    localStorage.removeItem("clienteKey")
-                }
-            }
+    try {
+      const response = await fetch(`${apiUrl}/clientes/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, senha }),
+      })
 
-            // carrega a página principal, após login do cliente
-            navigate("/")
+      if (response.ok) {
+        const clienteDados = await response.json()
+
+        logaCliente(clienteDados)
+
+        localStorage.removeItem("clienteKey")
+        sessionStorage.removeItem("clienteKey")
+
+        if (manterConectado) {
+          localStorage.setItem("clienteKey", clienteDados.id)
         } else {
-            toast.error("Erro... Login ou senha incorretos")
+          sessionStorage.setItem("clienteKey", clienteDados.id)
         }
-    }
 
-    return (
-        <section className="bg-gray-50 dark:bg-gray-900">
-            <p style={{ height: 48 }}></p>
-            <div className="flex flex-col items-center px-6 py-8 mx-auto md:h-screen lg:py-0">
-                <div className="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
-                    <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
-                        <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-                            Dados de Acesso do Cliente
-                        </h1>
-                        <form className="space-y-4 md:space-y-6" 
-                           onSubmit={handleSubmit(verificaLogin)} >
-                            <div>
-                                <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Seu e-mail</label>
-                                <input type="email" id="email" 
-                                       className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
-                                       required 
-                                       {...register("email")} />
-                            </div>
-                            <div>
-                                <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Senha de Acesso</label>
-                                <input type="password" id="password" 
-                                       className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
-                                       required 
-                                       {...register("senha")} />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-start">
-                                    <div className="flex items-center h-5">
-                                        <input id="remember" 
-                                               aria-describedby="remember" type="checkbox" 
-                                               className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800" 
-                                               {...register("manter")} />
-                                    </div>
-                                    <div className="ml-3 text-sm">
-                                        <label htmlFor="remember" className="text-gray-500 dark:text-gray-300">Manter Conectado</label>
-                                    </div>
-                                </div>
-                                <a href="#" className="text-sm font-medium text-primary-600 hover:underline dark:text-primary-500">Esqueceu sua senha?</a>
-                            </div>
-                            <button type="submit" className="w-full text-white bg-orange-600 hover:bg-orange-700 focus:ring-4 focus:outline-none focus:ring-orange-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                                Entrar
-                            </button>
-                            <p className="text-sm font-light text-gray-500 dark:text-gray-400">
-                                Ainda não possui conta? <Link to="/cadCliente" className="font-medium text-primary-600 hover:underline dark:text-primary-500">Cadastre-se</Link>
-                            </p>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </section>
-    )
+        navigate("/")
+      } else {
+        alert("E-mail ou senha incorretos.")
+      }
+    } catch (error) {
+      console.error("Erro ao realizar login:", error)
+      alert("Erro ao conectar com o servidor.")
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#1C1C1E] text-white flex items-center justify-center px-4">
+      <div className="bg-[#242426] border border-[#C89B3C]/30 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+        <h2 className="text-2xl font-bold text-[#E5BD55] mb-6 text-center">
+          Identifique-se
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              E-mail
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="teu@email.com"
+              className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-[#E5BD55]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Senha
+            </label>
+            <input
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+              placeholder="••••••••"
+              className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-[#E5BD55]"
+            />
+          </div>
+
+          <div className="flex items-center space-x-2 pt-1">
+            <input
+              type="checkbox"
+              id="manterConectado"
+              checked={manterConectado}
+              onChange={(e) => setManterConectado(e.target.checked)}
+              className="w-4 h-4 accent-[#E5BD55] bg-[#1C1C1E] border-gray-600 rounded cursor-pointer"
+            />
+            <label
+              htmlFor="manterConectado"
+              className="text-sm text-gray-300 cursor-pointer select-none"
+            >
+              Manter conectado
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-3 mt-4 bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] text-black font-bold rounded-lg hover:brightness-110 transition-all shadow-md"
+          >
+            Entrar
+          </button>
+        </form>
+
+        {/* Link para cadastrar novo cliente */}
+        <div className="text-center mt-6 text-xs text-gray-400">
+          Não tem uma conta?{" "}
+          <Link to="/cadCliente" className="text-[#E5BD55] font-bold hover:underline ml-1">
+            Cadastre-se aqui
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
 }

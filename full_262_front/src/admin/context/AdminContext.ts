@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AdminType } from '../../utils/AdminType.ts'
+import type { AdminType } from '../../utils/AdminType'
 
 type AdminStore = {
   admin: AdminType
@@ -8,17 +8,16 @@ type AdminStore = {
 }
 
 export const useAdminStore = create<AdminStore>((set) => ({
-  admin: localStorage.getItem("adminKey") 
-    ? JSON.parse(localStorage.getItem("adminKey") as string) 
-    : {} as AdminType,
+  admin: {} as AdminType,
 
-  logaAdmin: (adminLogado) => {
-    localStorage.setItem("adminKey", JSON.stringify(adminLogado))
-    set({ admin: adminLogado })
-  },
+  logaAdmin: (adminLogado: AdminType) => set({ admin: adminLogado }),
 
   deslogaAdmin: () => {
-    localStorage.removeItem("adminKey")
+    // Apaga a sessão do admin do localStorage e sessionStorage
+    localStorage.removeItem('adminKey')
+    sessionStorage.removeItem('adminKey')
+
+    // Reseta o estado global para objeto vazio
     set({ admin: {} as AdminType })
-  }
+  },
 }))

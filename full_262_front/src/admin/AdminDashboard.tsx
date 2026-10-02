@@ -1,212 +1,76 @@
-import './AdminDashboard.css'
-import { useEffect, useState } from "react";
-import {
-  VictoryPie,
-  VictoryLabel,
-  VictoryTheme,
-  VictoryChart,
-  // VictoryArea,
-  VictoryGroup,
-  VictoryBar,
-  VictoryAxis
-} from "victory";
-
-const apiUrl = import.meta.env.VITE_API_URL
-
-type graficoMarcaType = {
-  marca: string
-  num: number
-}
-
-type graficoClienteType = {
-  cidade: string
-  num: number
-}
-
-type geralDadosType = {
-  clientes: number
-  carros: number
-  propostas: number
-}
-
-type PropostasMensalType = {
-  mesAno: string;
-  recebidas: number;
-  aceitas: number;
-}
+import { useState, useEffect } from "react"
 
 export default function AdminDashboard() {
-  const [carrosMarca, setCarrosMarca] = useState<graficoMarcaType[]>([])
-  const [clientesCidade, setClientesCidade] = useState<graficoClienteType[]>([])
-  const [dados, setDados] = useState<geralDadosType>({} as geralDadosType)
-  const [propostasMes, setPropostasMes] = useState<PropostasMensalType[]>([]);
+  const [totalClientes, setTotalClientes] = useState(0)
+  const [totalProdutos, setTotalProdutos] = useState(0)
+  const [totalPedidos, setTotalPedidos] = useState(0)
 
   useEffect(() => {
-    async function getDadosGerais() {
-      const response = await fetch(`${apiUrl}/dashboard/gerais`)
-      const dados = await response.json()
-      setDados(dados)
-    }
-    getDadosGerais()
+    async function carregarTotais() {
+      try {
+        // 1. Buscar total de Produtos / Games
+        const resProd = await fetch("http://localhost:3000/produtos")
+        if (resProd.ok) {
+          const prods = await resProd.json()
+          setTotalProdutos(prods.length)
+        }
 
-    async function getDadosGraficoMarca() {
-      const response = await fetch(`${apiUrl}/dashboard/carrosMarca`)
-      const dados = await response.json()
-      setCarrosMarca(dados)
-    }
-    getDadosGraficoMarca()
+        // 2. Buscar total de Clientes (se a rota existir)
+        const resCli = await fetch("http://localhost:3000/clientes")
+        if (resCli.ok) {
+          const clis = await resCli.json()
+          setTotalClientes(clis.length)
+        } else {
+          setTotalClientes(0)
+        }
 
-    async function getDadosGraficoCliente() {
-      const response = await fetch(`${apiUrl}/dashboard/clientesCidade`)
-      const dados = await response.json()
-      setClientesCidade(dados)
+        // 3. Buscar total de Pedidos / Propostas (se a rota existir)
+        const resPed = await fetch("http://localhost:3000/propostas")
+        if (resPed.ok) {
+          const peds = await resPed.json()
+          setTotalPedidos(peds.length)
+        } else {
+          setTotalPedidos(0)
+        }
+      } catch (err) {
+        console.error("Erro ao carregar dados do dashboard:", err)
+        // Define os valores padrão em caso de erro na conexão
+        setTotalClientes(0)
+        setTotalPedidos(0)
+      }
     }
-    getDadosGraficoCliente()
 
-    async function getDadosPropostas() {
-      const response = await fetch(`${apiUrl}/dashboard/propostasMes`);
-      const dados: PropostasMensalType[] = await response.json();
-      setPropostasMes(dados);
-    }
-    getDadosPropostas()
-
+    carregarTotais()
   }, [])
 
-  const listaCarrosMarca = carrosMarca.map(item => (
-    { x: item.marca, y: item.num }
-  ))
-
-  const listaClientesCidade = clientesCidade.map(item => (
-    { x: item.cidade, y: item.num }
-  ))
-
-  const listaPropostasMes1 = propostasMes.map(item => (
-    { x: item.mesAno, y: item.recebidas }
-  ))
-
-  const listaPropostasMes2 = propostasMes.map(item => (
-    { x: item.mesAno, y: item.aceitas }
-  ))
-
   return (
-    <div className="container mt-24">
-      <h2 className="text-3xl mb-4 font-bold">Visão Geral do Sistema</h2>
-
-      <div className="w-2/3 flex justify-between mx-auto mb-4">
-        <div className="border-blue-600 border rounded p-6 w-1/3 me-3">
-          <span className="bg-blue-100 text-blue-800 text-xl text-center font-bold mx-auto block px-2.5 py-5 rounded dark:bg-blue-900 dark:text-blue-300">
-            {dados.clientes}</span>
-          <p className="font-bold mt-2 text-center">Nº Clientes</p>
+    <div>
+      <h2 className="text-2xl font-bold text-white mb-4">Visão Geral do Sistema</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
+        {/* Card 1: Clientes */}
+        <div className="bg-[#242426] border border-blue-600/40 p-6 rounded-xl text-center shadow-lg">
+          <div className="h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mb-3">
+            <span className="text-blue-400 font-bold text-xl">{totalClientes}</span>
+          </div>
+          <p className="text-gray-300 font-medium">Nº Clientes</p>
         </div>
-        <div className="border-red-600 border rounded p-6 w-1/3 me-3">
-          <span className="bg-red-100 text-red-800 text-xl text-center font-bold mx-auto block px-2.5 py-5 rounded dark:bg-red-900 dark:text-red-300">
-            {dados.carros}</span>
-          <p className="font-bold mt-2 text-center">Nº Carros</p>
+
+        {/* Card 2: Produtos / Games */}
+        <div className="bg-[#242426] border border-[#E5BD55]/40 p-6 rounded-xl text-center shadow-lg">
+          <div className="h-12 bg-[#E5BD55]/20 rounded-lg flex items-center justify-center mb-3">
+            <span className="text-[#E5BD55] font-bold text-xl">{totalProdutos}</span>
+          </div>
+          <p className="text-gray-300 font-medium">Nº Produtos / Games</p>
         </div>
-        <div className="border-green-600 border rounded p-6 w-1/3">
-          <span className="bg-green-100 text-green-800 text-xl text-center font-bold mx-auto block px-2.5 py-5 rounded dark:bg-green-900 dark:text-green-300">
-            {dados.propostas}</span>
-          <p className="font-bold mt-2 text-center">Nº Propostas</p>
+
+        {/* Card 3: Pedidos */}
+        <div className="bg-[#242426] border border-emerald-600/40 p-6 rounded-xl text-center shadow-lg">
+          <div className="h-12 bg-emerald-600/20 rounded-lg flex items-center justify-center mb-3">
+            <span className="text-emerald-400 font-bold text-xl">{totalPedidos}</span>
+          </div>
+          <p className="text-gray-300 font-medium">Nº Pedidos</p>
         </div>
-      </div>
-
-      {/* Gráfico de Barras Comparando Propostas/Mês */}
-      <h2 className="text-2xl font-bold mb-0">Nº de Propostas por Mês (Total e Aceitas)</h2>
-      <VictoryChart
-        theme={VictoryTheme.clean}
-        domainPadding={{ x: 20 }}
-        height={150}
-        padding={{ top: 10, bottom: 30, left: 35, right: 20 }}
-      >
-        <VictoryAxis
-          style={{ tickLabels: { fontSize: 8, padding: 0 } }}
-        />
-        <VictoryAxis
-          dependentAxis
-          style={{ tickLabels: { fontSize: 8, padding: 0 } }}
-        />
-
-        <VictoryGroup
-          offset={12}
-          style={{ data: { width: 10 } }}
-        >
-          <VictoryBar
-            data={listaPropostasMes1}
-            labels={({ datum }) => datum.y}
-            style={{ labels: { fontSize: 8, padding: 1 } }}
-          />
-          <VictoryBar
-            data={listaPropostasMes2}
-            labels={({ datum }) => datum.y}
-            style={{ labels: { fontSize: 8, padding: 1 } }}
-          />
-        </VictoryGroup>
-      </VictoryChart>
-
-      <div className="div-graficos">
-        <svg viewBox="30 55 400 400">
-          <VictoryPie
-            standalone={false}
-            width={400}
-            height={400}
-            data={listaCarrosMarca}
-            innerRadius={50}
-            labelRadius={80}
-            theme={VictoryTheme.clean}
-            style={{
-              labels: {
-                fontSize: 10,
-                fill: "#fff",
-                fontFamily: "Arial",
-                fontWeight: "bold"
-              }
-            }}
-          />
-          <VictoryLabel
-            textAnchor="middle"
-            style={{
-              fontSize: 12,
-              fill: "#f00",
-              fontFamily: "Arial",
-              fontWeight: "bold"
-            }}
-            x={200}
-            y={200}
-            text={["Veículos", "por Marca"]}
-          />
-        </svg>
-
-        <svg viewBox="30 55 400 400">
-          <VictoryPie
-            standalone={false}
-            width={400}
-            height={400}
-            data={listaClientesCidade}
-            innerRadius={50}
-            labelRadius={80}
-            theme={VictoryTheme.clean}
-            style={{
-              labels: {
-                fontSize: 10,
-                fill: "#fff",
-                fontFamily: "Arial",
-                fontWeight: "bold"
-              }
-            }}
-          />
-          <VictoryLabel
-            textAnchor="middle"
-            style={{
-              fontSize: 12,
-              fill: "#f00",
-              fontFamily: "Arial",
-              fontWeight: "bold"
-            }}
-            x={200}
-            y={200}
-            text={["Clientes", "por Cidade"]}
-          />
-        </svg>
       </div>
     </div>
   )

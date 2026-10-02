@@ -12,23 +12,37 @@ export default function App() {
 
   useEffect(() => {
     async function buscaDados() {
-      const response = await fetch(`${apiUrl}/produtos/destaques`)
-      const dados = await response.json()
-      setProdutos(dados)
+      try {
+        const response = await fetch(`${apiUrl}/produtos/destaques`)
+        if (response.ok) {
+          const dados = await response.json()
+          setProdutos(dados)
+        }
+      } catch (error) {
+        console.error("Erro ao carregar produtos:", error)
+      }
     }
     buscaDados()
 
     async function buscaCliente(id: string) {
-      const response = await fetch(`${apiUrl}/clientes/${id}`)
-      const dados = await response.json()
-      logaCliente(dados)
+      try {
+        const response = await fetch(`${apiUrl}/clientes/${id}`)
+        if (response.ok) {
+          const dados = await response.json()
+          logaCliente(dados)
+        }
+      } catch (error) {
+        console.error("Erro ao recuperar sessão do cliente:", error)
+      }
     }
 
-    if (localStorage.getItem("clienteKey")) {
-      const idCliente = localStorage.getItem("clienteKey")
-      buscaCliente(idCliente as string)
+    // Procura a chave no localStorage (Manter conectado) ou no sessionStorage (Sessão temporária)
+    const idCliente = localStorage.getItem("clienteKey") || sessionStorage.getItem("clienteKey")
+
+    if (idCliente) {
+      buscaCliente(idCliente)
     }    
-  }, [])
+  }, [logaCliente])
 
   const listaProdutos = produtos.map(produto => (
     <CardProduto data={produto} key={produto.id} />

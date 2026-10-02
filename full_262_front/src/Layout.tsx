@@ -7,7 +7,9 @@ export default function Layout() {
   return (
     <>
       <Titulo />
-      <Outlet />
+      <main className="flex-1 bg-[#1C1C1E] min-h-screen">
+        <Outlet />
+      </main>
       <Toaster richColors position="top-center" />
     </>
   )

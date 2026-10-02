@@ -1,105 +1,198 @@
-import { useEffect, useState } from "react";
-import { useClienteStore } from "./context/ClienteContext";
-import type { PedidoType } from "./utils/PedidoType";
+import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
+import { useClienteStore } from "./context/ClienteContext"
+import type { PedidoType } from "./utils/PedidoType"
 
 const apiUrl = import.meta.env.VITE_API_URL
 
 export default function MeusPedidos() {
   const [pedidos, setPedidos] = useState<PedidoType[]>([])
+  const [carregando, setCarregando] = useState<boolean>(true)
   const { cliente } = useClienteStore()
 
   useEffect(() => {
-    async function buscaDados() {
-      if (cliente.id) {
-        const response = await fetch(`${apiUrl}/pedidos/${cliente.id}`)
-        const dados = await response.json()
-        setPedidos(dados)
-      }
-    }
-    buscaDados()
-  }, [cliente.id])
+    async function buscaPedidos() {
+      // Obtém o ID do cliente logado via Context ou localStorage
+      const idCliente =
+        cliente?.id ||
+        localStorage.getItem("clienteKey") ||
+        localStorage.getItem("clienteId")
 
-  function dataDMA(data: string) {
-    if (!data) return ""
-    const ano = data.substring(0, 4)
-    const mes = data.substring(5, 7)
-    const dia = data.substring(8, 10)
-    return dia + "/" + mes + "/" + ano
+      if (idCliente) {
+        try {
+          const response = await fetch(`${apiUrl}/pedidos/cliente/${idCliente}`)
+          if (response.ok) {
+            const dados = await response.json()
+            setPedidos(dados)
+          } else {
+            // Tenta a rota direta caso a tua API use /pedidos/:clienteId
+            const responseAlt = await fetch(`${apiUrl}/pedidos/${idCliente}`)
+            if (responseAlt.ok) {
+              const dadosAlt = await responseAlt.json()
+              setPedidos(dadosAlt)
+            }
+          }
+        } catch (error) {
+          console.error("Erro ao carregar histórico de pedidos:", error)
+        }
+      }
+      setCarregando(false)
+    }
+
+    buscaPedidos()
+  }, [cliente])
+
+  function formatarData(dataIso?: string) {
+    if (!dataIso) return ""
+    const data = new Date(dataIso)
+    return data.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    })
   }
 
-  const pedidosTable = pedidos.map(pedido => {
-    const imagemExibicao = pedido.produto?.fotos && pedido.produto.fotos.length > 0
-      ? pedido.produto.fotos[0].url
-      : "/placeholder-game.png"
-
+  if (carregando) {
     return (
-      <tr key={pedido.id} className="bg-[#1C1C1E] border-b border-[#C89B3C]/20 hover:bg-[#242426] transition-colors">
-        <th scope="row" className="px-6 py-4 font-medium text-white whitespace-nowrap">
-          <p className="text-base font-bold text-[#E5BD55]">
-            {pedido.produto?.marca?.nome} {pedido.produto?.nome}
-          </p>
-          <p className="mt-1 text-sm text-gray-400">
-            Categoria: {pedido.produto?.categoria?.nome || "Geral"} — 
-            Preço: R$: {Number(pedido.produto?.preco || 0).toLocaleString("pt-br", { minimumFractionDigits: 2 })}
-          </p>
-        </th>
-        <td className="px-6 py-4">
-          <img 
-            src={imagemExibicao} 
-            className="w-20 h-16 object-cover rounded-lg border border-[#C89B3C]/30" 
-            alt={pedido.produto?.nome || "Produto"} 
-          />
-        </td>
-        <td className="px-6 py-4">
-          <p className="text-gray-200 font-medium">{pedido.descricao}</p>
-          <p className="text-xs text-gray-400 mt-1">
-            <i>Enviado em: {dataDMA(pedido.createdAt)}</i>
-          </p>
-        </td>
-        <td className="px-6 py-4">
-          <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-[#C89B3C]/20 text-[#E5BD55] border border-[#C89B3C]/40">
-            {pedido.status || "Em Processamento"}
-          </span>
-          {pedido.updatedAt && (
-            <p className="text-xs text-gray-400 mt-1">
-              <i>Atualizado em: {dataDMA(pedido.updatedAt)}</i>
-            </p>
-          )}
-        </td>
-      </tr>
+      <div className="min-h-screen bg-[#1C1C1E] text-white flex items-center justify-center">
+        <p className="text-xl font-semibold text-[#E5BD55] animate-pulse">
+          Carregando teus pedidos... 🎮
+        </p>
+      </div>
     )
-  })
+  }
 
   return (
-    <section className="max-w-7xl mx-auto px-4 py-6">
-      <h1 className="mb-6 mt-4 text-3xl font-extrabold leading-none tracking-tight text-white md:text-4xl lg:text-5xl">
-        Listagem de{" "}
-        <span className="relative inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820]">
-          Meus Pedidos
-        </span>
-      </h1>
-
-      {pedidos.length === 0 ? (
-        <h2 className="mb-4 mt-10 text-xl font-medium text-gray-400">
-          Ah... Você ainda não realizou pedidos de jogos ou produtos. 🙄
-        </h2>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-[#C89B3C]/30 shadow-lg">
-          <table className="w-full text-sm text-left text-gray-300">
-            <thead className="text-xs uppercase bg-[#242426] text-[#E5BD55] border-b border-[#C89B3C]/30">
-              <tr>
-                <th scope="col" className="px-6 py-4">Produto</th>
-                <th scope="col" className="px-6 py-4">Imagem</th>
-                <th scope="col" className="px-6 py-4">Observações</th>
-                <th scope="col" className="px-6 py-4">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pedidosTable}
-            </tbody>
-          </table>
+    <div className="min-h-screen bg-[#1C1C1E] text-white w-full py-8">
+      <section className="max-w-7xl mx-auto px-4">
+        <div className="mb-8">
+          <h1 className="text-3xl font-extrabold text-white md:text-4xl lg:text-5xl">
+            Meus{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820]">
+              Pedidos
+            </span>
+          </h1>
+          <p className="text-gray-400 mt-2 text-sm md:text-base">
+            Acompanha o estado das tuas compras e propostas solicitadas.
+          </p>
         </div>
-      )}
-    </section>
+
+        {pedidos.length === 0 ? (
+          <div className="bg-[#242426] border border-[#C89B3C]/30 rounded-2xl p-8 text-center max-w-2xl mx-auto my-12 shadow-xl">
+            <div className="text-5xl mb-4">🙄</div>
+            <h2 className="text-xl font-bold text-[#E5BD55] mb-2">
+              Nenhum pedido encontrado!
+            </h2>
+            <p className="text-gray-400 mb-6">
+              Ah... Você ainda não realizou pedidos de jogos ou produtos na Elder Games.
+            </p>
+            <Link
+              to="/"
+              className="inline-block px-6 py-3 bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] text-black font-bold rounded-lg hover:brightness-110 transition-all shadow-md"
+            >
+              Explorar Loja
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-[#C89B3C]/30 shadow-2xl bg-[#1C1C1E]">
+            <table className="w-full text-sm text-left text-gray-300">
+              <thead className="text-xs uppercase bg-[#242426] text-[#E5BD55] border-b border-[#C89B3C]/30">
+                <tr>
+                  <th scope="col" className="px-6 py-4">Imagem</th>
+                  <th scope="col" className="px-6 py-4">Produto</th>
+                  <th scope="col" className="px-6 py-4">Descrição / Mensagem</th>
+                  <th scope="col" className="px-6 py-4">Resposta da Loja</th>
+                  <th scope="col" className="px-6 py-4 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#C89B3C]/20">
+                {pedidos.map((pedido) => {
+                  const fotoExibicao =
+                    pedido.produto?.foto && pedido.produto.foto.trim() !== ""
+                      ? pedido.produto.foto
+                      : "/placeholder-game.png"
+
+                  return (
+                    <tr
+                      key={pedido.id}
+                      className="hover:bg-[#242426]/60 transition-colors"
+                    >
+                      {/* Imagem */}
+                      <td className="px-6 py-4">
+                        <div className="w-16 h-16 bg-[#2C2C2E] rounded-lg border border-[#C89B3C]/30 p-1 flex items-center justify-center overflow-hidden">
+                          <img
+                            src={fotoExibicao}
+                            alt={pedido.produto?.titulo || "Produto"}
+                            className="max-w-full max-h-full object-contain"
+                            onError={(e) => {
+                              ;(e.target as HTMLImageElement).src =
+                                "https://via.placeholder.com/150?text=Sem+Foto"
+                            }}
+                          />
+                        </div>
+                      </td>
+
+                      {/* Produto */}
+                      <td className="px-6 py-4 font-medium text-white">
+                        <p className="text-base font-bold text-[#E5BD55]">
+                          {pedido.produto?.titulo || "Produto"}
+                        </p>
+                        {pedido.produto?.preco && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            R${" "}
+                            {Number(pedido.produto.preco).toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                            })}
+                          </p>
+                        )}
+                        {pedido.createdAt && (
+                          <p className="text-[11px] text-gray-500 mt-1">
+                            Data: {formatarData(pedido.createdAt)}
+                          </p>
+                        )}
+                      </td>
+
+                      {/* Observações do Cliente */}
+                      <td className="px-6 py-4">
+                        <p className="text-gray-300 max-w-xs text-sm line-clamp-3">
+                          {pedido.descricao || "Sem observações."}
+                        </p>
+                      </td>
+
+                      {/* Resposta do Admin/Loja */}
+                      <td className="px-6 py-4">
+                        <p className="text-gray-300 max-w-xs text-sm italic">
+                          {pedido.resposta || (
+                            <span className="text-gray-500">
+                              Aguardando análise...
+                            </span>
+                          )}
+                        </p>
+                      </td>
+
+                      {/* Status do Pedido */}
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={`inline-block px-3 py-1 text-xs font-semibold rounded-full border ${
+                            pedido.status?.toLowerCase() === "atendido" ||
+                            pedido.status?.toLowerCase() === "concluído"
+                              ? "bg-green-900/30 text-green-400 border-green-500/40"
+                              : pedido.status?.toLowerCase() === "cancelado"
+                              ? "bg-red-900/30 text-red-400 border-red-500/40"
+                              : "bg-[#C89B3C]/20 text-[#E5BD55] border-[#C89B3C]/40"
+                          }`}
+                        >
+                          {pedido.status || "Pendente"}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
   )
 }
