@@ -155,10 +155,27 @@ router.put("/:id", autenticarAdmin, async (req, res) => {
 
 router.delete("/:id", autenticarAdmin, async (req, res) => {
   const { id } = req.params
+  const idProduto = Number(id)
+
+  if (!Number.isInteger(idProduto) || idProduto < 1) {
+    res.status(400).json({ erro: "ID de produto inválido." })
+    return
+  }
 
   try {
+    const pedidosVinculados = await prisma.pedido.count({
+      where: { produtoId: idProduto },
+    })
+
+    if (pedidosVinculados > 0) {
+      res.status(400).json({
+        erro: `Não é possível excluir este produto pois existem ${pedidosVinculados} pedido(s) associado(s) a ele.`,
+      })
+      return
+    }
+
     await prisma.produto.delete({
-      where: { id: Number(id) },
+      where: { id: idProduto },
     })
 
     return res.status(200).json({ mensagem: "Produto excluído com sucesso!" })

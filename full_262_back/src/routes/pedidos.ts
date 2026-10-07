@@ -24,7 +24,7 @@ router.get('/', autenticarAdmin, async (req, res) => {
   try {
     const pedidos = await prisma.pedido.findMany({
       include: {
-        cliente: { select: { nome: true } },
+        cliente: { select: { id: true, nome: true, email: true } },
         produto: {
           include: {
             marca: true,
@@ -36,7 +36,8 @@ router.get('/', autenticarAdmin, async (req, res) => {
     })
     res.status(200).json(pedidos)
   } catch (error) {
-    res.status(500).json({ erro: error })
+    console.error('Erro ao buscar pedidos:', error)
+    res.status(500).json({ erro: 'Erro ao buscar pedidos.' })
   }
 })
 
@@ -66,7 +67,8 @@ router.get('/cliente/:clienteId', autenticarCliente, async (req, res) => {
     })
     res.status(200).json(pedidos)
   } catch (error) {
-    res.status(500).json({ erro: error })
+    console.error('Erro ao buscar pedidos do cliente:', error)
+    res.status(500).json({ erro: 'Erro ao buscar pedidos do cliente.' })
   }
 })
 
@@ -74,7 +76,7 @@ router.get('/cliente/:clienteId', autenticarCliente, async (req, res) => {
 router.post('/', autenticarCliente, async (req, res) => {
   const valida = pedidoSchema.safeParse(req.body)
   if (!valida.success) {
-    res.status(400).json({ erro: valida.error })
+    res.status(400).json({ erro: valida.error.issues[0]?.message || 'Dados do pedido inválidos.' })
     return
   }
 
@@ -82,6 +84,15 @@ router.post('/', autenticarCliente, async (req, res) => {
   const clienteId = String(res.locals.clienteId)
 
   try {
+    const produtoExiste = await prisma.produto.findUnique({
+      where: { id: produtoId }
+    })
+
+    if (!produtoExiste) {
+      res.status(404).json({ erro: 'Produto não encontrado.' })
+      return
+    }
+
     const pedido = await prisma.pedido.create({
       data: {
         clienteId,
@@ -96,7 +107,8 @@ router.post('/', autenticarCliente, async (req, res) => {
     })
     res.status(201).json(pedido)
   } catch (error) {
-    res.status(400).json({ erro: error })
+    console.error('Erro ao criar pedido:', error)
+    res.status(400).json({ erro: 'Não foi possível cadastrar o pedido.' })
   }
 })
 
@@ -133,14 +145,21 @@ router.patch('/:id', autenticarAdmin, async (req, res) => {
 // Deletar um pedido
 router.delete('/:id', autenticarAdmin, async (req, res) => {
   const { id } = req.params
+  const idPedido = Number(id)
+
+  if (!Number.isInteger(idPedido) || idPedido < 1) {
+    res.status(400).json({ erro: 'ID de pedido inválido.' })
+    return
+  }
 
   try {
     const pedido = await prisma.pedido.delete({
-      where: { id: Number(id) }
+      where: { id: idPedido }
     })
-    res.status(200).json(pedido)
+    res.status(200).json({ mensagem: 'Pedido excluído com sucesso.', pedido })
   } catch (error) {
-    res.status(400).json({ erro: error })
+    console.error('Erro ao excluir pedido:', error)
+    res.status(400).json({ erro: 'Não foi possível excluir o pedido.' })
   }
 })
 

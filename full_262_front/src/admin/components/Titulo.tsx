@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom"
 import { FiUsers, FiBox, FiPlusSquare, FiShoppingBag } from "react-icons/fi"
+import { BiSolidDashboard } from "react-icons/bi"
 import { useAdminStore } from "../context/AdminContext"
 
 export function Titulo() {
@@ -9,12 +10,8 @@ export function Titulo() {
   function adminSair() {
     if (confirm("Confirma saída do painel administrativo?")) {
       deslogaAdmin()
-      if (localStorage.getItem("adminKey")) {
-        localStorage.removeItem("adminKey")
-      }
-      if (sessionStorage.getItem("adminKey")) {
-        sessionStorage.removeItem("adminKey")
-      }
+      localStorage.removeItem("adminKey")
+      sessionStorage.removeItem("adminKey")
       navigate("/admin/login")
     }
   }
@@ -34,6 +31,14 @@ export function Titulo() {
 
           {/* Links para as Páginas/Rotas do Admin */}
           <div className="hidden md:flex items-center space-x-4 border-l border-gray-700 pl-6 text-sm font-medium">
+            <Link
+              to="/admin"
+              className="flex items-center space-x-1.5 text-gray-300 hover:text-[#E5BD55] transition-colors"
+            >
+              <BiSolidDashboard className="text-[#E5BD55]" />
+              <span>Dashboard</span>
+            </Link>
+
             <Link
               to="/admin/produtos"
               className="flex items-center space-x-1.5 text-gray-300 hover:text-[#E5BD55] transition-colors"

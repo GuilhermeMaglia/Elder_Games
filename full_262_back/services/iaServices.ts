@@ -27,37 +27,29 @@ Categoria: ${dados.categoria}
 Ano: ${dados.ano}
 ${dados.descricaoAtual ? `Descrição ou informações fornecidas pelo administrador: ${dados.descricaoAtual}` : ''}`
 
-  // Nomes oficiais e suportados pela API @google/genai
-  const modelos = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest']
+  // Modelos suportados pela API Gemini com cota ativa e fallback
+  const modelos = [
+    'gemini-flash-lite-latest',
+    'gemini-3.8-flash-lite',
+    'gemini-pro-latest'
+  ]
   let ultimoErro: any = null
 
   for (const model of modelos) {
-    for (let tentativa = 1; tentativa <= 2; tentativa++) {
-      try {
-        const resposta = await ai.models.generateContent({
-          model,
-          contents: prompt,
-        })
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+      })
 
-        const descricao = resposta.text?.trim()
-        if (descricao) {
-          return descricao
-        }
-      } catch (error: any) {
-        ultimoErro = error
-        const ehErroIndisponivel =
-          error?.status === 'UNAVAILABLE' ||
-          error?.message?.includes('503') ||
-          error?.message?.includes('high demand')
+      const texto = response.text || (response as any).candidates?.[0]?.content?.parts?.[0]?.text
 
-        // Se for erro de servidor sobrecarregado (503), aguarda 1 segundo e tenta novamente
-        if (ehErroIndisponivel && tentativa < 2) {
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          continue
-        }
-        // Se for 404 (modelo não existe nessa API) pula para o próximo modelo da lista
-        break
+      if (texto && texto.trim().length > 0) {
+        return texto.trim()
       }
+    } catch (error: any) {
+      console.warn(`Erro ao tentar o modelo ${model}:`, error?.message || error)
+      ultimoErro = error
     }
   }
 
