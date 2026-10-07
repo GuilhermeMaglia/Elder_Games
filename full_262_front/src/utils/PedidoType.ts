@@ -7,7 +7,7 @@ export type PedidoType = {
   produto: ProdutoType
   descricao: string
   resposta?: string
-  status: string
+  status: "PENDENTE" | "EM_ANDAMENTO" | "CONCLUIDO" | "CANCELADO"
   createdAt: string
   updatedAt: string | null
 }

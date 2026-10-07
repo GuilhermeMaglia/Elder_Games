@@ -1,82 +1,175 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import ItemProduto from "./components/ItemProduto";
-import type { ProdutoType } from "../utils/ProdutoType";
+import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"
+
+// Interface atualizada para bater com o Prisma Schema e as relações (include)
+interface Produto {
+  id: number
+  titulo: string
+  preco: number | string
+  foto: string
+  quant: number
+  marca?: { nome: string }
+  categoria?: { nome: string }
+}
 
 export default function AdminProdutos() {
-  const [produtos, setProdutos] = useState<ProdutoType[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [produtos, setProdutos] = useState<Produto[]>([])
+  const [loading, setLoading] = useState(true)
+
+  async function carregarProdutos() {
+    try {
+      const response = await fetch(`${apiUrl}/produtos`)
+      if (response.ok) {
+        const data = await response.json()
+        setProdutos(data)
+      }
+    } catch (error) {
+      console.error("Erro ao carregar produtos:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    async function getProdutos() {
-      try {
-        const response = await fetch(`${apiUrl}/produtos`);
-        if (!response.ok) throw new Error("Erro ao buscar produtos");
-        const dados = await response.json();
-        setProdutos(dados);
-      } catch (error) {
-        console.error("Falha na requisição:", error);
-      } finally {
-        setLoading(false);
-      }
+    carregarProdutos()
+  }, [])
+
+  async function handleExcluir(id: number) {
+    if (!confirm("Tem certeza que deseja excluir este produto?")) return
+
+    const token = localStorage.getItem("adminKey") || sessionStorage.getItem("adminKey")
+    if (!token) {
+      alert("Faça login novamente como administrador para excluir produtos.")
+      return
     }
-    getProdutos();
-  }, []);
+
+    try {
+      const response = await fetch(`${apiUrl}/produtos/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (response.ok) {
+        alert("Produto excluído com sucesso!")
+        setProdutos((prev) => prev.filter((p) => p.id !== id))
+      } else {
+        const erro = await response.json().catch(() => ({}))
+        alert(erro.erro || "Erro ao excluir produto.")
+      }
+    } catch (error) {
+      console.error("Erro ao excluir:", error)
+      alert("Erro ao conectar ao servidor.")
+    }
+  }
+
+  if (loading) {
+    return <div className="p-8 text-center text-white">A carregar produtos...</div>
+  }
 
   return (
-    <div className="m-4 mt-24 max-w-7xl mx-auto">
+    <div className="m-4 mt-8 max-w-7xl mx-auto text-white">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold leading-none tracking-tight text-white md:text-3xl lg:text-4xl">
-          Cadastro de{" "}
+        <h1 className="text-2xl font-bold md:text-3xl">
+          Gestão de{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820]">
-            Produtos & Games
+            Produtos
           </span>
         </h1>
-        <Link 
-          to="/admin/produtos/novo" 
-          className="px-5 py-2.5 font-bold text-black bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] hover:brightness-110 rounded-xl transition-all shadow-lg text-sm"
+        <Link
+          to="/admin/produtos/novo"
+          className="px-4 py-2 bg-gradient-to-r from-[#E5BD55] to-[#8C6820] text-black font-semibold rounded-lg hover:brightness-110 transition-all"
         >
           + Novo Produto
         </Link>
       </div>
 
-      <div className="relative overflow-x-auto rounded-xl border border-[#C89B3C]/30 shadow-xl bg-[#1C1C1E]">
-        <table className="w-full text-sm text-left text-gray-300">
-          <thead className="text-xs uppercase bg-[#242426] text-[#E5BD55] border-b border-[#C89B3C]/30">
-            <tr>
-              <th scope="col" className="px-6 py-4">Foto</th>
-              <th scope="col" className="px-6 py-4">Nome do Produto</th>
-              <th scope="col" className="px-6 py-4">Marca / Fabricante</th>
-              <th scope="col" className="px-6 py-4">Categoria</th>
-              <th scope="col" className="px-6 py-4">Preço R$</th>
-              <th scope="col" className="px-6 py-4">Estoque</th>
-              <th scope="col" className="px-6 py-4">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={7} className="text-center py-6 text-gray-400">Carregando catálogo...</td>
+      <div className="bg-[#1C1C1E] border border-[#C89B3C]/30 rounded-2xl overflow-hidden shadow-xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-[#C89B3C]/30 text-[#E5BD55] text-xs uppercase tracking-wider bg-[#242426]">
+                <th className="p-4">Foto</th>
+                <th className="p-4">Nome do Produto</th>
+                <th className="p-4">Marca / Fabricante</th>
+                <th className="p-4">Categoria</th>
+                <th className="p-4">Preço R$</th>
+                <th className="p-4">Estoque</th>
+                <th className="p-4 text-center">Ações</th>
               </tr>
-            ) : produtos.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center py-6 text-gray-400">Nenhum produto cadastrado.</td>
-              </tr>
-            ) : (
-              produtos.map(produto => (
-                <ItemProduto 
-                  key={produto.id} 
-                  produto={produto} 
-                  produtos={produtos} 
-                  setProdutos={setProdutos} 
-                />
-              ))
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-800 text-sm">
+              {produtos.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-gray-400">
+                    Nenhum produto cadastrado.
+                  </td>
+                </tr>
+              ) : (
+                produtos.map((produto) => (
+                  <tr key={produto.id} className="hover:bg-[#242426]/50 transition-colors">
+                    {/* FOTO */}
+                    <td className="p-4">
+                      <img
+                        src={produto.foto}
+                        alt={produto.titulo}
+                        className="w-14 h-14 object-cover rounded-lg border border-[#C89B3C]/40 bg-black/40"
+                        onError={(e) => {
+                          // Imagem padrão de fallback se a URL falhar
+                          ;(e.target as HTMLImageElement).src =
+                            "https://via.placeholder.com/80?text=Sem+Foto"
+                        }}
+                      />
+                    </td>
+
+                    {/* NOME DO PRODUTO (titulo) */}
+                    <td className="p-4 font-medium text-gray-200">
+                      {produto.titulo || "Sem título"}
+                    </td>
+
+                    {/* MARCA */}
+                    <td className="p-4 text-gray-400">
+                      {produto.marca?.nome || "—"}
+                    </td>
+
+                    {/* CATEGORIA */}
+                    <td className="p-4 text-gray-400">
+                      {produto.categoria?.nome || "—"}
+                    </td>
+
+                    {/* PREÇO */}
+                    <td className="p-4 font-bold text-[#E5BD55]">
+                      R$: {Number(produto.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+
+                    {/* ESTOQUE (quant) */}
+                    <td className="p-4 text-gray-300">
+                      {produto.quant ?? 0} un.
+                    </td>
+
+                    {/* AÇÕES */}
+                    <td className="p-4 text-center space-x-3">
+                      <Link
+                        to={`/admin/produtos/editar/${produto.id}`}
+                        className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                      >
+                        Editar
+                      </Link>
+                      <button
+                        onClick={() => handleExcluir(produto.id)}
+                        className="text-red-500 hover:text-red-400 font-medium cursor-pointer transition-colors"
+                      >
+                        Excluir
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  );
+  )
 }

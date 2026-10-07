@@ -14,6 +14,8 @@ export const useClienteStore = create<ClienteStore>((set) => ({
     // Limpa a chave em ambos os storages
     localStorage.removeItem('clienteKey')
     sessionStorage.removeItem('clienteKey')
+    localStorage.removeItem('clienteToken')
+    sessionStorage.removeItem('clienteToken')
     
     // Reseta o estado global
     set({ cliente: {} as ClienteType })

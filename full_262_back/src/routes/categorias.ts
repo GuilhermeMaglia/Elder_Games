@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from "../lib/prisma"
+import { autenticarAdmin } from "../middleware/autenticarAdmin"
 
 const router = Router()
 
@@ -21,7 +22,7 @@ router.get("/", async (req, res) => {
 })
 
 // Cadastrar nova categoria
-router.post("/", async (req, res) => {
+router.post("/", autenticarAdmin, async (req, res) => {
   const valida = categoriaSchema.safeParse(req.body)
   if (!valida.success) {
     res.status(400).json({ erro: valida.error })
@@ -41,7 +42,7 @@ router.post("/", async (req, res) => {
 })
 
 // Editar categoria
-router.put("/:id", async (req, res) => {
+router.put("/:id", autenticarAdmin, async (req, res) => {
   const { id } = req.params
   const valida = categoriaSchema.safeParse(req.body)
   if (!valida.success) {
@@ -61,7 +62,7 @@ router.put("/:id", async (req, res) => {
 })
 
 // Deletar categoria
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", autenticarAdmin, async (req, res) => {
   const { id } = req.params
   try {
     const categoria = await prisma.categoria.delete({

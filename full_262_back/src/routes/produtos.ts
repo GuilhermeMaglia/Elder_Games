@@ -1,20 +1,21 @@
 import { Router } from "express"
 import { z } from "zod"
 import { prisma } from "../lib/prisma"
+import { autenticarAdmin } from "../middleware/autenticarAdmin"
 
 const router = Router()
 
 // Schema de validação Zod atualizado com 'ano' e 'quant'
 const produtoSchema = z.object({
-  titulo: z.string().min(3, "O título deve ter no mínimo 3 caracteres"),
-  descricao: z.string().optional(),
-  ano: z.number().int().min(1900, "Ano inválido"),
-  preco: z.number().positive("O preço deve ser maior que zero"),
+  titulo: z.string().trim().min(3, "O título deve ter no mínimo 3 caracteres").max(100),
+  descricao: z.string().nullable().optional(),
+  ano: z.number().int().min(1900, "Ano inválido").max(2100, "Ano inválido"),
+  preco: z.number().positive("O preço deve ser maior que zero").max(9999999.99),
   foto: z.string().url("A foto deve ser uma URL válida"),
   quant: z.number().int().min(0, "A quantidade deve ser zero ou maior").default(0),
   destaque: z.boolean().default(true),
-  marcaId: z.number().int("ID de marca inválido"),
-  categoriaId: z.number().int("ID de categoria inválido"),
+  marcaId: z.number().int("ID de marca inválido").positive(),
+  categoriaId: z.number().int("ID de categoria inválido").positive(),
 })
 
 // 1. GET /produtos/destaques - Produtos em destaque para a Home
@@ -100,7 +101,7 @@ router.get("/:id", async (req, res) => {
 })
 
 // 4. POST /produtos - Cadastrar produto
-router.post("/", async (req, res) => {
+router.post("/", autenticarAdmin, async (req, res) => {
   try {
     const valida = produtoSchema.safeParse(req.body)
 
@@ -121,6 +122,49 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("Erro em POST /produtos:", error)
     res.status(500).json({ erro: "Erro interno ao cadastrar produto" })
+  }
+})
+
+router.put("/:id", autenticarAdmin, async (req, res) => {
+  const { id } = req.params
+  const idProduto = Number(id)
+  const valida = produtoSchema.safeParse(req.body)
+
+  if (!Number.isInteger(idProduto) || idProduto < 1) {
+    res.status(400).json({ erro: "ID de produto inválido." })
+    return
+  }
+  if (!valida.success) {
+    res.status(400).json({ erros: valida.error.issues.map((issue) => issue.message) })
+    return
+  }
+
+  try {
+    const produto = await prisma.produto.update({
+      where: { id: idProduto },
+      data: { ...valida.data, descricao: valida.data.descricao || null },
+      include: { marca: true, categoria: true },
+    })
+
+    return res.status(200).json(produto)
+  } catch (error) {
+    console.error("Erro ao atualizar produto:", error)
+    return res.status(400).json({ erro: "Erro ao atualizar produto no banco de dados." })
+  }
+})
+
+router.delete("/:id", autenticarAdmin, async (req, res) => {
+  const { id } = req.params
+
+  try {
+    await prisma.produto.delete({
+      where: { id: Number(id) },
+    })
+
+    return res.status(200).json({ mensagem: "Produto excluído com sucesso!" })
+  } catch (error) {
+    console.error("Erro ao excluir produto:", error)
+    return res.status(400).json({ erro: "Erro ao excluir produto do banco de dados." })
   }
 })
 

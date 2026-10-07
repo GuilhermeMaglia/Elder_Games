@@ -8,10 +8,10 @@ interface ItemProdutoProps {
 }
 
 export default function ItemProduto({ produto, produtos, setProdutos }: ItemProdutoProps) {
-  const apiUrl = import.meta.env.VITE_API_URL
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
   async function excluirProduto() {
-    if (!confirm(`Confirma a exclusão do produto "${produto.nome}"?`)) return
+    if (!confirm(`Confirma a exclusão do produto "${produto.titulo}"?`)) return
 
     const response = await fetch(`${apiUrl}/produtos/${produto.id}`, {
       method: "DELETE"
@@ -24,21 +24,19 @@ export default function ItemProduto({ produto, produtos, setProdutos }: ItemProd
     }
   }
 
-  const imagemExibicao = produto.fotos && produto.fotos.length > 0
-    ? produto.fotos[0].url
-    : "/placeholder-game.png"
+  const imagemExibicao = produto.foto || "/placeholder-game.png"
 
   return (
     <tr className="bg-[#1C1C1E] border-b border-[#C89B3C]/20 hover:bg-[#242426] transition-colors">
       <td className="px-6 py-4">
         <img 
           src={imagemExibicao} 
-          alt={produto.nome} 
+          alt={produto.titulo}
           className="w-16 h-12 object-cover rounded-lg border border-[#C89B3C]/30"
         />
       </td>
       <td className="px-6 py-4 font-bold text-white">
-        {produto.nome}
+        {produto.titulo}
       </td>
       <td className="px-6 py-4 text-gray-300">
         {produto.marca?.nome || "N/A"}

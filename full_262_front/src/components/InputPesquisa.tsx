@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form"
 import type { ProdutoType } from "../utils/ProdutoType"
 
-const apiUrl = import.meta.env.VITE_API_URL
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 interface Inputs {
   termo: string
@@ -15,30 +15,48 @@ export function InputPesquisa({ setProdutos }: InputPesquisaProps) {
   const { register, handleSubmit, reset } = useForm<Inputs>()
 
   async function enviaPesquisa(data: Inputs) {
-    if (data.termo.trim().length < 2) {
-      // Se a pesquisa for vazia, recarrega os destaques
-      const response = await fetch(`${apiUrl}/produtos/destaques`)
-      const dados = await response.json()
-      setProdutos(dados)
-      return
-    }
+    try {
+      const termo = data.termo.trim()
+      const url = termo.length < 2
+        ? `${apiUrl}/produtos/destaques`
+        : `${apiUrl}/produtos?${new URLSearchParams({ termo })}`
+      const response = await fetch(url)
 
-    // Busca produtos no backend pelo termo pesquisado
-    const response = await fetch(`${apiUrl}/produtos?termo=${data.termo}`)
-    const dados = await response.json()
+      if (!response.ok) {
+        throw new Error(`A busca falhou (${response.status}).`)
+      }
 
-    if (dados.length === 0) {
-      alert("Nenhum produto encontrado com essa palavra-chave.")
-    } else {
+      const dados: unknown = await response.json()
+      if (!Array.isArray(dados)) {
+        throw new Error("A resposta da busca possui formato inválido.")
+      }
+
       setProdutos(dados)
+      if (termo.length >= 2 && dados.length === 0) {
+        alert("Nenhum produto encontrado com essa palavra-chave.")
+      }
+    } catch (error) {
+      console.error("Erro ao buscar produtos:", error)
+      alert("Não foi possível buscar produtos. Tente novamente.")
     }
   }
 
   async function mostraTodos() {
     reset()
-    const response = await fetch(`${apiUrl}/produtos/destaques`)
-    const dados = await response.json()
-    setProdutos(dados)
+    try {
+      const response = await fetch(`${apiUrl}/produtos`)
+      if (!response.ok) {
+        throw new Error(`Não foi possível carregar os produtos (${response.status}).`)
+      }
+      const dados: unknown = await response.json()
+      if (!Array.isArray(dados)) {
+        throw new Error("A resposta dos produtos possui formato inválido.")
+      }
+      setProdutos(dados)
+    } catch (error) {
+      console.error("Erro ao carregar todos os produtos:", error)
+      alert("Não foi possível carregar os produtos. Tente novamente.")
+    }
   }
 
   return (

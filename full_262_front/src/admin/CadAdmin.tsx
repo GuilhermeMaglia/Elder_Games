@@ -4,7 +4,7 @@ import { toast } from "sonner"
 import { useAdminStore } from "./context/AdminContext"
 import Titulo from "../components/Titulo"
 
-const apiUrl = import.meta.env.VITE_API_URL
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 export default function AdminLogin() {
   const [modoCadastro, setModoCadastro] = useState(false)
@@ -19,7 +19,7 @@ export default function AdminLogin() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    const rota = modoCadastro ? `${apiUrl}/admins` : `${apiUrl}/admins/login`
+    const rota = modoCadastro ? `${apiUrl}/admins` : `${apiUrl}/admin/login`
     const body = modoCadastro ? { nome, email, senha } : { email, senha }
 
     try {

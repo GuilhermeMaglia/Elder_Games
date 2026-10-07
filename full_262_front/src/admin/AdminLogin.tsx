@@ -14,60 +14,76 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("")
   const [senha, setSenha] = useState("")
   const [manterConectado, setManterConectado] = useState(false)
+  const [mensagemErro, setMensagemErro] = useState("")
 
   const navigate = useNavigate()
   const { logaAdmin } = useAdminStore()
 
-async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault()
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setMensagemErro("") // Limpa qualquer erro anterior ao tentar novamente
 
-  const urlBase = apiUrl || "http://localhost:3000"
-  const rota = modoCadastro ? `${urlBase}/admins` : `${urlBase}/admin/login`
-  const body = modoCadastro ? { nome, email, senha } : { email, senha }
+    const urlBase = apiUrl || "http://localhost:3000"
+    const rota = modoCadastro ? `${urlBase}/admins` : `${urlBase}/admin/login`
+    const body = modoCadastro ? { nome, email, senha } : { email, senha }
+    const token = localStorage.getItem("adminKey") || sessionStorage.getItem("adminKey")
 
-  try {
-    const response = await fetch(rota, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json" 
-      },
-      body: JSON.stringify(body),
-    })
+    try {
+      const response = await fetch(rota, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(modoCadastro && token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(body),
+      })
 
-    const data = await response.json().catch(() => ({}))
+      const data = await response.json().catch(() => ({}))
 
-    if (!response.ok) {
-      // Exibe a mensagem de erro exata retornada pelo backend (Erro 1, Erro 2 ou Erro 3)
-      toast.error(data.erro || "Dados inválidos.")
-      return
-    }
-
-    logaAdmin(data)
-
-    localStorage.removeItem("adminKey")
-    sessionStorage.removeItem("adminKey")
-
-    const key = data.token || data.id
-    if (key) {
-      if (manterConectado) {
-        localStorage.setItem("adminKey", String(key))
-      } else {
-        sessionStorage.setItem("adminKey", String(key))
+      if (!response.ok) {
+        // Exibe a mensagem de erro exata retornada pelo backend (Erro 1, Erro 2 ou Erro 3)
+        const msgErro = data.erro || "Dados inválidos."
+        toast.error(msgErro)
+        setMensagemErro(msgErro)
+        return
       }
+
+      if (modoCadastro) {
+        setModoCadastro(false)
+        setNome("")
+        setSenha("")
+        toast.success("Administrador cadastrado. Entre com a nova conta para continuar.")
+        return
+      }
+
+      logaAdmin(data)
+
+      localStorage.removeItem("adminKey")
+      sessionStorage.removeItem("adminKey")
+
+      const key = data.token || data.id
+      if (key) {
+        if (manterConectado) {
+          localStorage.setItem("adminKey", String(key))
+        } else {
+          sessionStorage.setItem("adminKey", String(key))
+        }
+      }
+
+      toast.success(
+        modoCadastro
+          ? "Administrador cadastrado com sucesso!"
+          : "Login de Admin efetuado!"
+      )
+      navigate("/admin")
+
+    } catch (error) {
+      console.error("Erro na requisição:", error)
+      const msgFalha = "Erro ao conectar com o servidor. Verifique o backend."
+      toast.error(msgFalha)
+      setMensagemErro(msgFalha)
     }
-
-    toast.success(
-      modoCadastro
-        ? "Administrador cadastrado com sucesso!"
-        : "Login de Admin efetuado!"
-    )
-    navigate("/admin")
-
-  } catch (error) {
-    console.error("Erro na requisição:", error)
-    toast.error("Erro ao conectar com o servidor. Verifique o backend.")
   }
-}
 
   return (
     <div className="min-h-screen bg-[#1C1C1E] text-white flex flex-col">
@@ -85,6 +101,13 @@ async function handleSubmit(e: React.FormEvent) {
                 : "Identifique-se para gerir a loja"}
             </p>
           </div>
+
+          {/* Banner de erro visível no formulário */}
+          {mensagemErro && (
+            <div className="mb-4 bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-3 rounded-lg text-center font-medium">
+              {mensagemErro}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {modoCadastro && (
@@ -158,7 +181,10 @@ async function handleSubmit(e: React.FormEvent) {
           <div className="mt-6 flex flex-col items-center space-y-2 border-t border-gray-800 pt-4 text-xs">
             <button
               type="button"
-              onClick={() => setModoCadastro(!modoCadastro)}
+              onClick={() => {
+                setModoCadastro(!modoCadastro)
+                setMensagemErro("")
+              }}
               className="text-[#E5BD55] hover:underline cursor-pointer"
             >
               {modoCadastro

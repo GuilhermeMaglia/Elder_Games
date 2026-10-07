@@ -1,16 +1,13 @@
-import Titulo from './components/Titulo.tsx'
-import { Outlet } from 'react-router-dom'
-
-import { Toaster } from 'sonner'
+import { Outlet } from "react-router-dom"
+import Titulo from "./components/Titulo" // Ajuste o caminho conforme sua pasta
 
 export default function Layout() {
   return (
-    <>
+    <div className="min-h-screen bg-[#121214] text-white">
       <Titulo />
-      <main className="flex-1 bg-[#1C1C1E] min-h-screen">
+      <main className="max-w-screen-xl mx-auto p-4">
         <Outlet />
       </main>
-      <Toaster richColors position="top-center" />
-    </>
+    </div>
   )
 }

@@ -1,96 +1,169 @@
 import { useEffect, useState } from "react"
-import { toast } from "sonner"
 
-const apiUrl = import.meta.env.VITE_API_URL
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
-interface Pedido {
+type StatusPedido = "PENDENTE" | "EM_ANDAMENTO" | "CONCLUIDO" | "CANCELADO"
+
+interface PedidoAdmin {
   id: number
-  data: string
-  status: string
-  total: number
-  cliente?: { nome: string }
+  createdAt: string
+  status: StatusPedido
+  cliente: { nome: string }
+  produto: { preco: number | string }
 }
 
+const statusPedidos: { value: StatusPedido; label: string }[] = [
+  { value: "PENDENTE", label: "Pendente" },
+  { value: "EM_ANDAMENTO", label: "Em andamento" },
+  { value: "CONCLUIDO", label: "Concluído" },
+  { value: "CANCELADO", label: "Cancelado" },
+]
+
 export default function AdminPedidos() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [pedidos, setPedidos] = useState<PedidoAdmin[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState("")
 
   useEffect(() => {
-    carregaPedidos()
+    async function carregarPedidos() {
+      try {
+        const token = localStorage.getItem("adminKey") || sessionStorage.getItem("adminKey")
+        const response = await fetch(`${apiUrl}/pedidos`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+        if (!response.ok) {
+          const dados = await response.json().catch(() => ({}))
+          throw new Error(
+            dados.erro || `Falha ao carregar pedidos (${response.status}).`
+          )
+        }
+        setPedidos(await response.json())
+      } catch (error) {
+        console.error("Erro ao carregar pedidos:", error)
+        setErro(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar os pedidos."
+        )
+      } finally {
+        setCarregando(false)
+      }
+    }
+
+    carregarPedidos()
   }, [])
 
-  async function carregaPedidos() {
+  async function alterarStatus(id: number, novoStatus: StatusPedido) {
+    setErro("")
     try {
-      const response = await fetch(`${apiUrl}/pedidos`)
-      if (response.ok) {
-        const dados = await response.json()
-        setPedidos(dados)
-      }
-    } catch (error) {
-      console.error("Erro ao carregar pedidos:", error)
-    }
-  }
-
-  async function alteraStatus(id: number, novoStatus: string) {
-    try {
+      const token = localStorage.getItem("adminKey") || sessionStorage.getItem("adminKey")
       const response = await fetch(`${apiUrl}/pedidos/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ status: novoStatus }),
       })
 
-      if (response.ok) {
-        toast.success(`Status do pedido #${id} atualizado!`)
-        setPedidos((prev) =>
-          prev.map((p) => (p.id === id ? { ...p, status: novoStatus } : p))
-        )
-      } else {
-        toast.error("Erro ao atualizar status.")
+      if (!response.ok) {
+        const dados = await response.json().catch(() => ({}))
+        throw new Error(dados.erro || `Falha ao atualizar o pedido (${response.status}).`)
       }
+
+      const pedidoAtualizado: PedidoAdmin = await response.json()
+      setPedidos((atuais) =>
+        atuais.map((pedido) => (pedido.id === id ? pedidoAtualizado : pedido))
+      )
     } catch (error) {
-      console.error("Erro na alteração:", error)
-      toast.error("Falha de conexão com o servidor.")
+      console.error("Erro ao atualizar status do pedido:", error)
+      setErro(error instanceof Error ? error.message : "Não foi possível atualizar o pedido.")
     }
   }
 
-  return (
-    <div className="max-w-5xl mx-auto">
-      <h2 className="text-2xl font-bold text-[#E5BD55] mb-6">Gestão de Pedidos</h2>
+  function formatarData(dataString: string) {
+    const dataParsed = new Date(dataString)
+    if (isNaN(dataParsed.getTime())) return "N/A"
+    return dataParsed.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
 
-      <div className="bg-[#242426] border border-[#C89B3C]/30 rounded-xl overflow-hidden shadow-xl">
-        <table className="w-full text-left text-sm text-gray-300">
-          <thead className="bg-[#1C1C1E] text-[#E5BD55] uppercase text-xs border-b border-[#C89B3C]/30">
+  function formatarValor(valor: number | string) {
+    return `R$ ${Number(valor).toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] bg-clip-text text-transparent">
+        Gestão de Pedidos
+      </h1>
+
+      {erro && (
+        <p role="alert" className="text-red-400">
+          {erro}
+        </p>
+      )}
+
+      <div className="relative overflow-x-auto shadow-md sm:rounded-lg border border-[#C89B3C]/30 bg-[#1C1C1E]">
+        <table className="w-full text-sm text-left text-gray-300">
+          <thead className="text-xs uppercase bg-[#242426] text-[#E5BD55] border-b border-[#C89B3C]/30">
             <tr>
-              <th className="p-4"># ID</th>
-              <th className="p-4">Cliente</th>
-              <th className="p-4">Data</th>
-              <th className="p-4">Valor Total</th>
-              <th className="p-4">Status</th>
+              <th scope="col" className="px-6 py-3"># ID</th>
+              <th scope="col" className="px-6 py-3">Cliente</th>
+              <th scope="col" className="px-6 py-3">Data</th>
+              <th scope="col" className="px-6 py-3">Valor do Produto</th>
+              <th scope="col" className="px-6 py-3">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-800">
-            {pedidos.map((pedido) => (
-              <tr key={pedido.id} className="hover:bg-[#1C1C1E]/50 transition-colors">
-                <td className="p-4 font-bold text-white">#{pedido.id}</td>
-                <td className="p-4">{pedido.cliente?.nome || "Cliente Geral"}</td>
-                <td className="p-4">{new Date(pedido.data).toLocaleDateString("pt-BR")}</td>
-                <td className="p-4 text-[#E5BD55] font-semibold">
-                  R$ {Number(pedido.total).toFixed(2)}
-                </td>
-                <td className="p-4">
-                  <select
-                    value={pedido.status}
-                    onChange={(e) => alteraStatus(pedido.id, e.target.value)}
-                    className="bg-[#1C1C1E] border border-[#C89B3C]/40 text-white rounded-lg p-1.5 text-xs focus:outline-none focus:border-[#E5BD55]"
-                  >
-                    <option value="Pendente">Pendente</option>
-                    <option value="Em Processamento">Em Processamento</option>
-                    <option value="Enviado">Enviado</option>
-                    <option value="Entregue">Entregue</option>
-                    <option value="Cancelado">Cancelado</option>
-                  </select>
+          <tbody>
+            {carregando ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-4 text-center text-gray-400">
+                  Carregando pedidos...
                 </td>
               </tr>
-            ))}
+            ) : pedidos.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-4 text-center text-gray-400">
+                  Nenhum pedido cadastrado.
+                </td>
+              </tr>
+            ) : (
+              pedidos.map((pedido) => (
+                <tr
+                  key={pedido.id}
+                  className="border-b border-gray-800 hover:bg-[#242426]/50 transition-colors"
+                >
+                  <td className="px-6 py-4 font-bold text-white">#{pedido.id}</td>
+                  <td className="px-6 py-4 text-gray-200">{pedido.cliente.nome}</td>
+                  <td className="px-6 py-4 text-gray-400">{formatarData(pedido.createdAt)}</td>
+                  <td className="px-6 py-4 text-[#E5BD55] font-semibold">
+                    {formatarValor(pedido.produto.preco)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <select
+                      value={pedido.status}
+                      onChange={(e) => alterarStatus(pedido.id, e.target.value as StatusPedido)}
+                      className="bg-[#242426] text-xs text-white border border-[#C89B3C]/40 rounded-lg p-2 focus:ring-1 focus:ring-[#C89B3C] focus:outline-none cursor-pointer"
+                    >
+                      {statusPedidos.map((status) => (
+                        <option key={status.value} value={status.value}>
+                          {status.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

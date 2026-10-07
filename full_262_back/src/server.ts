@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 
@@ -10,6 +11,7 @@ import routesPedidos from './routes/pedidos'
 import routesAdminLogin from './routes/adminLogin'
 import routesDashboard from './routes/dashboard'
 import routesAdmins from './routes/admins' 
+import routesIa from './routes/ia'
 
 const app = express()
 const port = 3000
@@ -24,6 +26,7 @@ app.use("/produtos", routesProdutos)
 app.use("/clientes", routesClientes)
 app.use("/clientes/login", routesLogin)
 app.use("/pedidos", routesPedidos)
+app.use("/ia", routesIa)
 
 // Rotas Administrativas
 app.use("/admins", routesAdmins) // <-- Adicionado

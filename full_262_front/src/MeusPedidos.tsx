@@ -3,11 +3,12 @@ import { Link } from "react-router-dom"
 import { useClienteStore } from "./context/ClienteContext"
 import type { PedidoType } from "./utils/PedidoType"
 
-const apiUrl = import.meta.env.VITE_API_URL
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 export default function MeusPedidos() {
   const [pedidos, setPedidos] = useState<PedidoType[]>([])
   const [carregando, setCarregando] = useState<boolean>(true)
+  const [erro, setErro] = useState("")
   const { cliente } = useClienteStore()
 
   useEffect(() => {
@@ -16,25 +17,29 @@ export default function MeusPedidos() {
       const idCliente =
         cliente?.id ||
         localStorage.getItem("clienteKey") ||
-        localStorage.getItem("clienteId")
+        sessionStorage.getItem("clienteKey")
+      const token =
+        localStorage.getItem("clienteToken") ||
+        sessionStorage.getItem("clienteToken")
 
-      if (idCliente) {
+      if (idCliente && token) {
         try {
-          const response = await fetch(`${apiUrl}/pedidos/cliente/${idCliente}`)
+          const response = await fetch(`${apiUrl}/pedidos/cliente/${idCliente}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
           if (response.ok) {
             const dados = await response.json()
             setPedidos(dados)
           } else {
-            // Tenta a rota direta caso a tua API use /pedidos/:clienteId
-            const responseAlt = await fetch(`${apiUrl}/pedidos/${idCliente}`)
-            if (responseAlt.ok) {
-              const dadosAlt = await responseAlt.json()
-              setPedidos(dadosAlt)
-            }
+            const dados = await response.json().catch(() => ({}))
+            throw new Error(dados.erro || `Falha ao carregar pedidos (${response.status}).`)
           }
         } catch (error) {
           console.error("Erro ao carregar histórico de pedidos:", error)
+          setErro(error instanceof Error ? error.message : "Não foi possível carregar os pedidos.")
         }
+      } else if (!token) {
+        setErro("Entre novamente na sua conta para consultar seus pedidos.")
       }
       setCarregando(false)
     }
@@ -50,6 +55,16 @@ export default function MeusPedidos() {
       month: "2-digit",
       year: "numeric"
     })
+  }
+
+  function rotuloStatus(status: PedidoType["status"]) {
+    const rotulos: Record<PedidoType["status"], string> = {
+      PENDENTE: "Pendente",
+      EM_ANDAMENTO: "Em andamento",
+      CONCLUIDO: "Concluído",
+      CANCELADO: "Cancelado",
+    }
+    return rotulos[status]
   }
 
   if (carregando) {
@@ -73,11 +88,21 @@ export default function MeusPedidos() {
             </span>
           </h1>
           <p className="text-gray-400 mt-2 text-sm md:text-base">
-            Acompanha o estado das tuas compras e propostas solicitadas.
+            Acompanha os pedidos e mensagens enviados à loja.
           </p>
         </div>
 
-        {pedidos.length === 0 ? (
+        {erro ? (
+          <div role="alert" className="bg-[#242426] border border-[#C89B3C]/30 rounded-2xl p-8 text-center max-w-2xl mx-auto my-12 shadow-xl">
+            <p className="text-gray-300">{erro}</p>
+            <Link
+              to="/login"
+              className="inline-block mt-6 px-6 py-3 bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] text-black font-bold rounded-lg hover:brightness-110 transition-all shadow-md"
+            >
+              Entrar
+            </Link>
+          </div>
+        ) : pedidos.length === 0 ? (
           <div className="bg-[#242426] border border-[#C89B3C]/30 rounded-2xl p-8 text-center max-w-2xl mx-auto my-12 shadow-xl">
             <div className="text-5xl mb-4">🙄</div>
             <h2 className="text-xl font-bold text-[#E5BD55] mb-2">
@@ -174,15 +199,14 @@ export default function MeusPedidos() {
                       <td className="px-6 py-4 text-center">
                         <span
                           className={`inline-block px-3 py-1 text-xs font-semibold rounded-full border ${
-                            pedido.status?.toLowerCase() === "atendido" ||
-                            pedido.status?.toLowerCase() === "concluído"
+                            pedido.status === "CONCLUIDO"
                               ? "bg-green-900/30 text-green-400 border-green-500/40"
-                              : pedido.status?.toLowerCase() === "cancelado"
+                              : pedido.status === "CANCELADO"
                               ? "bg-red-900/30 text-red-400 border-red-500/40"
                               : "bg-[#C89B3C]/20 text-[#E5BD55] border-[#C89B3C]/40"
                           }`}
                         >
-                          {pedido.status || "Pendente"}
+                          {rotuloStatus(pedido.status)}
                         </span>
                       </td>
                     </tr>

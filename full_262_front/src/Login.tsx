@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { useClienteStore } from "./context/ClienteContext"
 
-const apiUrl = import.meta.env.VITE_API_URL
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 export default function Login() {
   const [email, setEmail] = useState("")
@@ -29,11 +29,15 @@ export default function Login() {
 
         localStorage.removeItem("clienteKey")
         sessionStorage.removeItem("clienteKey")
+        localStorage.removeItem("clienteToken")
+        sessionStorage.removeItem("clienteToken")
 
         if (manterConectado) {
           localStorage.setItem("clienteKey", clienteDados.id)
+          localStorage.setItem("clienteToken", clienteDados.token)
         } else {
           sessionStorage.setItem("clienteKey", clienteDados.id)
+          sessionStorage.setItem("clienteToken", clienteDados.token)
         }
 
         navigate("/")
