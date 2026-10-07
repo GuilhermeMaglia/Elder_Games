@@ -13,14 +13,20 @@ export default function ItemProduto({ produto, produtos, setProdutos }: ItemProd
   async function excluirProduto() {
     if (!confirm(`Confirma a exclusão do produto "${produto.titulo}"?`)) return
 
+    const token = localStorage.getItem("adminKey") || sessionStorage.getItem("adminKey")
     const response = await fetch(`${apiUrl}/produtos/${produto.id}`, {
-      method: "DELETE"
+      method: "DELETE",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      }
     })
 
     if (response.ok) {
       setProdutos(produtos.filter(p => p.id !== produto.id))
+      alert("Produto excluído com sucesso.")
     } else {
-      alert("Erro ao excluir o produto.")
+      const erro = await response.json().catch(() => ({}))
+      alert(erro.erro || "Erro ao excluir o produto.")
     }
   }
 

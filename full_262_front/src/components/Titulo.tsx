@@ -1,7 +1,20 @@
-import { Link } from "react-router-dom"
-import { FiShoppingCart, FiUser } from "react-icons/fi"
+import { Link, useNavigate } from "react-router-dom"
+import { FiShoppingCart, FiUser, FiLogOut } from "react-icons/fi"
+import { useClienteStore } from "../context/ClienteContext"
 
 export default function Titulo() {
+  const { cliente, deslogaCliente } = useClienteStore()
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    if (confirm("Deseja sair da sua conta?")) {
+      deslogaCliente()
+      navigate("/")
+    }
+  }
+
+  const estaLogado = Boolean(cliente?.id || cliente?.nome)
+
   return (
     <nav className="border-b border-[#C89B3C]/30 bg-[#1C1C1E] text-white shadow-md">
       <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
@@ -31,13 +44,31 @@ export default function Titulo() {
             <span>Meus Pedidos</span>
           </Link>
 
-          <Link
-            to="/login"
-            className="flex items-center space-x-1 text-gray-300 hover:text-[#E5BD55] transition-colors font-medium"
-          >
-            <FiUser className="text-[#E5BD55]" />
-            <span>Entrar</span>
-          </Link>
+          {estaLogado ? (
+            <div className="flex items-center space-x-3">
+              <span className="flex items-center space-x-1 text-[#E5BD55] font-medium">
+                <FiUser />
+                <span className="max-w-[120px] truncate">{cliente.nome}</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex items-center space-x-1 text-gray-400 hover:text-red-400 transition-colors font-medium cursor-pointer"
+                title="Sair da conta"
+              >
+                <FiLogOut />
+                <span>Sair</span>
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="flex items-center space-x-1 text-gray-300 hover:text-[#E5BD55] transition-colors font-medium"
+            >
+              <FiUser className="text-[#E5BD55]" />
+              <span>Entrar</span>
+            </Link>
+          )}
 
           <span className="text-gray-600">|</span>
 

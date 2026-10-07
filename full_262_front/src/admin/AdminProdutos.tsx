@@ -10,6 +10,7 @@ interface Produto {
   preco: number | string
   foto: string
   quant: number
+  destaque?: boolean
   marca?: { nome: string }
   categoria?: { nome: string }
 }
@@ -96,13 +97,14 @@ export default function AdminProdutos() {
                 <th className="p-4">Categoria</th>
                 <th className="p-4">Preço R$</th>
                 <th className="p-4">Estoque</th>
+                <th className="p-4 text-center">Destaque</th>
                 <th className="p-4 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800 text-sm">
               {produtos.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-400">
+                  <td colSpan={8} className="p-8 text-center text-gray-400">
                     Nenhum produto cadastrado.
                   </td>
                 </tr>
@@ -146,6 +148,19 @@ export default function AdminProdutos() {
                     {/* ESTOQUE (quant) */}
                     <td className="p-4 text-gray-300">
                       {produto.quant ?? 0} un.
+                    </td>
+
+                    {/* DESTAQUE */}
+                    <td className="p-4 text-center">
+                      <span
+                        className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full border ${
+                          produto.destaque
+                            ? "bg-[#C89B3C]/20 text-[#E5BD55] border-[#C89B3C]/40"
+                            : "bg-gray-800 text-gray-400 border-gray-700"
+                        }`}
+                      >
+                        {produto.destaque ? "Sim" : "Não"}
+                      </span>
                     </td>
 
                     {/* AÇÕES */}

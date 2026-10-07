@@ -25,8 +25,11 @@ export default function CadCliente() {
         alert("Conta criada com sucesso! Faça login para continuar.")
         navigate("/login")
       } else {
-        const erro = await response.json()
-        alert(erro.erro || "Erro ao cadastrar cliente.")
+        const erro = await response.json().catch(() => ({}))
+        const msg = erro.erro
+          ? (typeof erro.erro === "string" ? erro.erro : JSON.stringify(erro.erro))
+          : (erro.erros ? (Array.isArray(erro.erros) ? erro.erros.join("\n") : erro.erros) : "Erro ao cadastrar cliente.")
+        alert(msg)
       }
     } catch (error) {
       console.error("Erro ao conectar com a API:", error)

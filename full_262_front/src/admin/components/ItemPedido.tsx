@@ -18,11 +18,12 @@ export default function ItemPedido({ pedido, pedidos, setPedidos }: ItemPedidoPr
 
   async function excluirPedido() {
     if (confirm(`Confirma a exclusão do pedido para "${pedido.produto?.titulo}"?`)) {
+      const token = localStorage.getItem("adminKey") || sessionStorage.getItem("adminKey") || admin?.token
       const response = await fetch(`${apiUrl}/pedidos/${pedido.id}`, {
         method: "DELETE",
         headers: {
           "Content-type": "application/json",
-          Authorization: `Bearer ${admin.token}`
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         }
       })
 
@@ -50,11 +51,12 @@ export default function ItemPedido({ pedido, pedidos, setPedidos }: ItemPedidoPr
       return
     }
 
+    const token = localStorage.getItem("adminKey") || sessionStorage.getItem("adminKey") || admin?.token
     const response = await fetch(`${apiUrl}/pedidos/${pedido.id}`, {
       method: "PATCH",
       headers: {
         "Content-type": "application/json",
-        Authorization: `Bearer ${admin.token}`
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
       },
       body: JSON.stringify({ status: statusNormalizado })
     })

@@ -159,7 +159,10 @@ export default function AdminNovoProduto() {
       } else {
         const erroBackend = await response.json().catch(() => null)
         console.error("Erro do servidor:", erroBackend)
-        alert(erroBackend?.erro || erroBackend?.message || "Erro 400: Dados recusados pelo servidor.")
+        const msgErro = erroBackend?.erros
+          ? (Array.isArray(erroBackend.erros) ? erroBackend.erros.join("\n") : erroBackend.erros)
+          : (erroBackend?.erro || erroBackend?.message || "Erro: Dados recusados pelo servidor.")
+        alert(msgErro)
       }
     } catch (error) {
       console.error(error)
@@ -297,6 +300,19 @@ export default function AdminNovoProduto() {
               onChange={(e) => setDescricao(e.target.value)}
               className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-lg p-3 text-sm focus:outline-none focus:border-[#E5BD55]"
             />
+          </div>
+
+          <div className="md:col-span-2 flex items-center space-x-2 pt-1">
+            <input
+              type="checkbox"
+              id="destaque"
+              checked={destaque}
+              onChange={(e) => setDestaque(e.target.checked)}
+              className="w-4 h-4 accent-[#E5BD55] bg-[#1C1C1E] border-gray-600 rounded cursor-pointer"
+            />
+            <label htmlFor="destaque" className="text-sm text-gray-300 cursor-pointer select-none">
+              Exibir este produto na seção de <strong className="text-[#E5BD55]">Destaques</strong> da página inicial
+            </label>
           </div>
         </div>
 
