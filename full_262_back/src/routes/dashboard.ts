@@ -1,9 +1,10 @@
 import { Router } from 'express'
 import { prisma } from "../lib/prisma"
+import { autenticarAdmin } from "../middleware/autenticarAdmin"
 
 const router = Router()
 
-router.get("/geral", async (req, res) => {
+router.get("/geral", autenticarAdmin, async (req, res) => {
   try {
     const totalProdutos = await prisma.produto.count()
     const totalPedidos = await prisma.pedido.count()

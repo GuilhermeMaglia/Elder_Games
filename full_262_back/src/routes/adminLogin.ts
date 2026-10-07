@@ -2,6 +2,7 @@ import { Router } from "express"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 import { prisma } from "../lib/prisma"
+import { obterJwtSecret } from "../lib/jwtSecret"
 
 const router = Router()
 
@@ -16,6 +17,12 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    const jwtSecret = obterJwtSecret()
+    if (!jwtSecret) {
+      res.status(503).json({ erro: "Autenticação indisponível: configure JWT_KEY com pelo menos 32 caracteres no backend." })
+      return
+    }
+
     // 2. Busca do administrador no banco
     const admin = await prisma.admin.findUnique({
       where: { email },
@@ -35,8 +42,6 @@ router.post("/", async (req, res) => {
     }
 
     // Gerar Token JWT
-    const jwtSecret = process.env.JWT_KEY || "sua_chave_secreta_admin"
-
     const token = jwt.sign(
       {
         adminLogadoId: admin.id,

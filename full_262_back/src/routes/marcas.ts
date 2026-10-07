@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from "../lib/prisma"
+import { autenticarAdmin } from "../middleware/autenticarAdmin"
 
 const router = Router()
 
@@ -21,7 +22,7 @@ router.get("/", async (req, res) => {
 })
 
 // Cadastrar nova marca
-router.post("/", async (req, res) => {
+router.post("/", autenticarAdmin, async (req, res) => {
   const valida = marcaSchema.safeParse(req.body)
   if (!valida.success) {
     res.status(400).json({ erro: valida.error })
@@ -41,7 +42,7 @@ router.post("/", async (req, res) => {
 })
 
 // Atualizar marca existente
-router.put("/:id", async (req, res) => {
+router.put("/:id", autenticarAdmin, async (req, res) => {
   const { id } = req.params
 
   const valida = marcaSchema.safeParse(req.body)
@@ -64,7 +65,7 @@ router.put("/:id", async (req, res) => {
 })
 
 // Deletar marca
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", autenticarAdmin, async (req, res) => {
   const { id } = req.params
 
   try {

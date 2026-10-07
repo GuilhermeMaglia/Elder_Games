@@ -2,6 +2,8 @@ import { Router } from 'express'
 import { z } from 'zod'
 import bcrypt from 'bcrypt'
 import { prisma } from "../lib/prisma"
+import { autenticarAdmin } from "../middleware/autenticarAdmin"
+import { autenticarCliente } from "../middleware/autenticarCliente"
 
 const router = Router()
 
@@ -13,7 +15,7 @@ const clienteSchema = z.object({
 })
 
 // Listar todos os clientes
-router.get("/", async (req, res) => {
+router.get("/", autenticarAdmin, async (req, res) => {
   try {
     const clientes = await prisma.cliente.findMany({
       select: {
@@ -80,8 +82,12 @@ router.post("/", async (req, res) => {
 })
 
 // Obter detalhes de um cliente por ID
-router.get("/:id", async (req, res) => {
-  const { id } = req.params
+router.get("/:id", autenticarCliente, async (req, res) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
+  if (!id) {
+    res.status(400).json({ erro: "ID de cliente inválido" })
+    return
+  }
 
   try {
     const cliente = await prisma.cliente.findUnique({
@@ -107,8 +113,12 @@ router.get("/:id", async (req, res) => {
 })
 
 // Deletar cliente
-router.delete("/:id", async (req, res) => {
-  const { id } = req.params
+router.delete("/:id", autenticarAdmin, async (req, res) => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
+  if (!id) {
+    res.status(400).json({ erro: "ID de cliente inválido" })
+    return
+  }
 
   try {
     const cliente = await prisma.cliente.delete({

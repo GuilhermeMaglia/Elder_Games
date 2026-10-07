@@ -2,6 +2,7 @@ import { Router } from "express"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 import { prisma } from "../lib/prisma"
+import { obterJwtSecret } from "../lib/jwtSecret"
 
 const router = Router()
 
@@ -17,6 +18,12 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    const jwtSecret = obterJwtSecret()
+    if (!jwtSecret) {
+      res.status(503).json({ erro: "Autenticação indisponível: configure JWT_KEY com pelo menos 32 caracteres no backend." })
+      return
+    }
+
     const cliente = await prisma.cliente.findUnique({
       where: { email }
     })
@@ -33,8 +40,6 @@ router.post("/", async (req, res) => {
       res.status(400).json({ erro: mensaPadrao })
       return
     }
-
-    const jwtSecret = process.env.JWT_KEY || "sua_chave_secreta_padrao"
 
     // Geração do token JWT
     const token = jwt.sign(

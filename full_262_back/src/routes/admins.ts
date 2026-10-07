@@ -2,6 +2,7 @@ import { Router } from "express"
 import bcrypt from "bcrypt"
 import { z } from "zod"
 import { prisma } from "../lib/prisma"
+import { autenticarAdmin } from "../middleware/autenticarAdmin"
 
 const router = Router()
 
@@ -13,7 +14,19 @@ const adminSchema = z.object({
 })
 
 // POST /admins - Cadastrar novo administrador
-router.post("/", async (req, res) => {
+router.post("/", async (req, res, next) => {
+  try {
+    const quantidadeAdmins = await prisma.admin.count()
+    if (quantidadeAdmins > 0) {
+      autenticarAdmin(req, res, next)
+      return
+    }
+    next()
+  } catch (error) {
+    console.error("Erro ao verificar o cadastro inicial de administrador:", error)
+    res.status(500).json({ erro: "Não foi possível verificar o acesso administrativo." })
+  }
+}, async (req, res) => {
   try {
     const valida = adminSchema.safeParse(req.body)
 
@@ -59,7 +72,7 @@ router.post("/", async (req, res) => {
 })
 
 // GET /admins - Listar administradores (ocultando senha)
-router.get("/", async (req, res) => {
+router.get("/", autenticarAdmin, async (req, res) => {
   try {
     const admins = await prisma.admin.findMany({
       select: {
