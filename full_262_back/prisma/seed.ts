@@ -19,6 +19,7 @@ async function main() {
   const pureArts = await prisma.marca.create({ data: { nome: 'PureArts' } })
   const darkHorse = await prisma.marca.create({ data: { nome: 'Dark Horse Books' } })
   const cdProjekt = await prisma.marca.create({ data: { nome: 'CD Projekt Red' } })
+  const fromSoftware = await prisma.marca.create({ data: { nome: 'FromSoftware' } })
 
   // Criar Categorias
   const estatuas = await prisma.categoria.create({ data: { nome: 'Estátuas & Action Figures' } })
@@ -103,7 +104,7 @@ async function main() {
         foto: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ412KMGjl9B1B9NMbgvQbvNFtI6kA4mDawU4wj6RCbTw&s=10",
         quant: 0,
         destaque: false,
-        marcaId: cdProjekt.id,
+        marcaId: fromSoftware.id,
         categoriaId: edicoesEspeciais.id
       }
     ]
