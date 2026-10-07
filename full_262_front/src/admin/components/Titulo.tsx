@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom"
-import { FiUsers } from "react-icons/fi"
+import { FiUsers, FiBox, FiPlusSquare, FiShoppingBag } from "react-icons/fi"
 import { useAdminStore } from "../context/AdminContext"
 
 export function Titulo() {
@@ -22,13 +22,35 @@ export function Titulo() {
   return (
     <nav className="border-b border-[#C89B3C]/30 bg-[#1C1C1E] text-white shadow-md">
       <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
-        {/* Logo e Título Admin */}
-        <Link to="/admin" className="flex items-center space-x-3 rtl:space-x-reverse">
-          <img src="/icon.png" className="h-12 w-auto object-contain" alt="Logo Elder Games" />
-          <span className="self-center text-2xl font-semibold whitespace-nowrap bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] bg-clip-text text-transparent">
-            Elder Games: Admin
-          </span>
-        </Link>
+        
+        {/* Lado Esquerdo: Logo e Menu de Navegação das Rotas Admin */}
+        <div className="flex items-center space-x-6">
+          <Link to="/admin" className="flex items-center space-x-3 rtl:space-x-reverse">
+            <img src="/icon.png" className="h-10 w-auto object-contain" alt="Logo Elder Games" />
+            <span className="self-center text-2xl font-semibold whitespace-nowrap bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] bg-clip-text text-transparent">
+              Elder Games: Admin
+            </span>
+          </Link>
+
+          {/* Links para as Páginas/Rotas do Admin */}
+          <div className="hidden md:flex items-center space-x-4 border-l border-gray-700 pl-6 text-sm font-medium">
+            <Link
+              to="/admin/produtos"
+              className="flex items-center space-x-1.5 text-gray-300 hover:text-[#E5BD55] transition-colors"
+            >
+              <FiBox className="text-[#E5BD55]" />
+              <span>Produtos</span>
+            </Link>
+
+            <Link
+              to="/admin/pedidos"
+              className="flex items-center space-x-1.5 text-gray-300 hover:text-[#E5BD55] transition-colors"
+            >
+              <FiShoppingBag className="text-[#E5BD55]" />
+              <span>Pedidos</span>
+            </Link>
+          </div>
+        </div>
 
         {/* Botão Mobile */}
         <button
@@ -44,24 +66,28 @@ export function Titulo() {
           </svg>
         </button>
 
-        {/* Links e Área do Admin */}
+        {/* Lado Direito: Usuário, Botão + Novo Item, Sair e Ver Loja */}
         <div className="hidden w-full md:block md:w-auto" id="navbar-solid-bg">
           <ul className="flex flex-col font-medium mt-4 rounded-lg bg-[#242426] md:flex-row md:items-center md:space-x-6 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-transparent">
             <li>
               {admin?.id || admin?.nome ? (
                 <div className="flex items-center space-x-4 text-sm">
+                  {/* Nome do Admin Logado */}
                   <div className="flex items-center text-[#D2AC67] font-medium">
                     <FiUsers className="mr-2 text-[#E5BD55]" />
                     <span>{admin.nome}</span>
                   </div>
 
+                  {/* Botão Dourado de Novo Item */}
                   <Link
-                    to="/admin/novo-produto"
-                    className="px-4 py-2 bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] text-black font-bold rounded-lg hover:brightness-110 transition-all shadow-md text-sm"
+                    to="/admin/produtos/novo"
+                    className="flex items-center space-x-1 px-4 py-2 bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] text-black font-bold rounded-lg hover:brightness-110 transition-all shadow-md text-sm"
                   >
-                    + Novo Item
+                    <FiPlusSquare />
+                    <span>+ Novo Item</span>
                   </Link>
 
+                  {/* Botão Sair */}
                   <span
                     className="cursor-pointer font-bold text-gray-400 hover:text-[#E5BD55] transition-colors"
                     onClick={adminSair}
@@ -71,6 +97,7 @@ export function Titulo() {
 
                   <span className="text-gray-600">|</span>
 
+                  {/* Atalho para a Loja Pública */}
                   <Link
                     to="/"
                     className="text-xs text-gray-400 hover:text-[#E5BD55] transition-colors"
@@ -82,7 +109,7 @@ export function Titulo() {
                 <div className="flex items-center space-x-4 text-sm">
                   <Link
                     to="/admin/login"
-                    className="text-[#E5BD55] hover:text-white transition-colors"
+                    className="text-[#E5BD55] hover:text-white transition-colors font-medium"
                   >
                     Login Admin
                   </Link>
@@ -100,6 +127,7 @@ export function Titulo() {
             </li>
           </ul>
         </div>
+
       </div>
     </nav>
   )

@@ -1,13 +1,13 @@
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 
-const apiUrl = import.meta.env.VITE_API_URL
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 export default function CadCliente() {
   const [nome, setNome] = useState("")
   const [email, setEmail] = useState("")
   const [senha, setSenha] = useState("")
-  const [cpf, setCpf] = useState("")
+  const [cidade, setCidade] = useState("")
 
   const navigate = useNavigate()
 
@@ -18,7 +18,7 @@ export default function CadCliente() {
       const response = await fetch(`${apiUrl}/clientes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, email, senha, cpf }),
+        body: JSON.stringify({ nome, email, senha, cidade }),
       })
 
       if (response.ok) {
@@ -54,6 +54,8 @@ export default function CadCliente() {
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               required
+              minLength={6}
+              maxLength={60}
               placeholder="Seu nome"
               className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-[#E5BD55]"
             />
@@ -61,14 +63,16 @@ export default function CadCliente() {
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
-              CPF
+              Cidade
             </label>
             <input
               type="text"
-              value={cpf}
-              onChange={(e) => setCpf(e.target.value)}
+              value={cidade}
+              onChange={(e) => setCidade(e.target.value)}
               required
-              placeholder="000.000.000-00"
+              minLength={3}
+              maxLength={30}
+              placeholder="Sua cidade"
               className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-[#E5BD55]"
             />
           </div>
@@ -82,6 +86,7 @@ export default function CadCliente() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              maxLength={60}
               placeholder="seu@email.com"
               className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-[#E5BD55]"
             />
@@ -96,6 +101,8 @@ export default function CadCliente() {
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               required
+              minLength={8}
+              maxLength={60}
               placeholder="••••••••"
               className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-[#E5BD55]"
             />

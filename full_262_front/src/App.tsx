@@ -4,10 +4,11 @@ import type { ProdutoType } from "./utils/ProdutoType"
 import { useEffect, useState } from "react"
 import { useClienteStore } from "./context/ClienteContext"
 
-const apiUrl = import.meta.env.VITE_API_URL
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 export default function App() {
   const [produtos, setProdutos] = useState<ProdutoType[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
   const { logaCliente } = useClienteStore()  
 
   useEffect(() => {
@@ -20,16 +21,28 @@ export default function App() {
         }
       } catch (error) {
         console.error("Erro ao carregar produtos:", error)
+      } finally {
+        setLoading(false)
       }
     }
     buscaDados()
 
     async function buscaCliente(id: string) {
+      const token = localStorage.getItem("clienteToken") || sessionStorage.getItem("clienteToken")
+      if (!token) return
+
       try {
-        const response = await fetch(`${apiUrl}/clientes/${id}`)
+        const response = await fetch(`${apiUrl}/clientes/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
         if (response.ok) {
           const dados = await response.json()
           logaCliente(dados)
+        } else if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("clienteKey")
+          localStorage.removeItem("clienteToken")
+          sessionStorage.removeItem("clienteKey")
+          sessionStorage.removeItem("clienteToken")
         }
       } catch (error) {
         console.error("Erro ao recuperar sessão do cliente:", error)
@@ -44,10 +57,6 @@ export default function App() {
     }    
   }, [logaCliente])
 
-  const listaProdutos = produtos.map(produto => (
-    <CardProduto data={produto} key={produto.id} />
-  ))
-
   return (
     <div className="min-h-screen bg-[#1C1C1E] text-white py-6 px-4">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -61,9 +70,21 @@ export default function App() {
             </span>
           </h1>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {listaProdutos}
-          </div>
+          {loading ? (
+            <div className="text-center py-12 text-gray-400 font-medium">
+              Carregando destaques...
+            </div>
+          ) : produtos.length === 0 ? (
+            <div className="text-center py-12 text-gray-400 font-medium">
+              Nenhum produto em destaque encontrado.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {produtos.map((produto) => (
+                <CardProduto data={produto} key={produto.id} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

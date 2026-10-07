@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom"
 import { useClienteStore } from "./context/ClienteContext"
 import type { ProdutoType } from "./utils/ProdutoType"
 
-const apiUrl = import.meta.env.VITE_API_URL
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 export default function Detalhes() {
   const { id } = useParams<{ id: string }>()
@@ -13,6 +13,8 @@ export default function Detalhes() {
   const [produto, setProduto] = useState<ProdutoType | null>(null)
   const [descricao, setDescricao] = useState<string>("")
   const [enviando, setEnviando] = useState<boolean>(false)
+  const [carregandoProduto, setCarregandoProduto] = useState(true)
+  const [erroProduto, setErroProduto] = useState("")
 
   useEffect(() => {
     async function buscaProduto() {
@@ -21,9 +23,14 @@ export default function Detalhes() {
         if (response.ok) {
           const dados = await response.json()
           setProduto(dados)
+        } else {
+          setErroProduto("Não foi possível encontrar este produto.")
         }
       } catch (error) {
         console.error("Erro ao buscar detalhes do produto:", error)
+        setErroProduto("Não foi possível conectar à loja. Tente novamente.")
+      } finally {
+        setCarregandoProduto(false)
       }
     }
 
@@ -39,9 +46,13 @@ export default function Detalhes() {
   const idCliente =
     cliente?.id ||
     localStorage.getItem("clienteKey") ||
+    sessionStorage.getItem("clienteKey") ||
     localStorage.getItem("clienteId")
+  const tokenCliente =
+    localStorage.getItem("clienteToken") ||
+    sessionStorage.getItem("clienteToken")
 
-  if (!idCliente) {
+  if (!idCliente || !tokenCliente) {
     alert("Por favor, faça login para realizar um pedido.")
     navigate("/login")
     return
@@ -51,25 +62,23 @@ export default function Detalhes() {
 
   setEnviando(true)
 
-  // Monta o payload testando a conversão do ID para número
   const bodyData = {
-    clienteId: isNaN(Number(idCliente)) ? idCliente : Number(idCliente),
-    produtoId: isNaN(Number(produto.id)) ? produto.id : Number(produto.id),
+    produtoId: produto.id,
     descricao: descricao,
-    proposta: descricao, // Envia também como 'proposta' caso o teu backend use esse nome
   }
-
-  console.log("Enviando pedido para:", `${apiUrl}/pedidos`, bodyData)
 
   try {
     const response = await fetch(`${apiUrl}/pedidos`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${tokenCliente}`,
+      },
       body: JSON.stringify(bodyData),
     })
 
     if (response.ok) {
-      alert("Proposta / Pedido enviado com sucesso!")
+      alert("Pedido enviado para análise da loja!")
       navigate("/meusPedidos")
     } else {
       const erroDados = await response.json().catch(() => null)
@@ -90,12 +99,25 @@ export default function Detalhes() {
   }
 }
 
-  if (!produto) {
+  if (carregandoProduto) {
     return (
       <div className="min-h-screen bg-[#1C1C1E] text-white flex items-center justify-center">
         <p className="text-xl font-semibold text-[#E5BD55] animate-pulse">
-          A carregar detalhes do jogo... 🎮
+          A carregar detalhes do produto... 🎮
         </p>
+      </div>
+    )
+  }
+
+  if (!produto) {
+    return (
+      <div className="min-h-screen bg-[#1C1C1E] text-white flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-center text-lg text-gray-300">
+          {erroProduto || "Produto não encontrado."}
+        </p>
+        <Link to="/" className="text-[#E5BD55] hover:underline">
+          Voltar para a loja
+        </Link>
       </div>
     )
   }
@@ -137,16 +159,19 @@ export default function Detalhes() {
               {produto.descricao || "Sem descrição disponível."}
             </p>
 
-            {/* Form de Envio da Proposta / Pedido */}
+            {/* Form de envio de pedido para análise da loja */}
             <form onSubmit={enviaPedido} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Observações / Proposta:
+                  Mensagem para a loja *
                 </label>
                 <textarea
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value)}
-                  placeholder="Escreva alguma observação ou proposta para este item..."
+                  placeholder="Escreva uma mensagem para a loja..."
+                  required
+                  minLength={3}
+                  maxLength={255}
                   className="w-full bg-[#1C1C1E] border border-[#C89B3C]/40 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-[#E5BD55]"
                   rows={3}
                 />
@@ -157,7 +182,7 @@ export default function Detalhes() {
                 disabled={enviando}
                 className="w-full py-3 bg-gradient-to-r from-[#E5BD55] via-[#C89B3C] to-[#8C6820] text-black font-bold rounded-lg hover:brightness-110 transition-all shadow-md disabled:opacity-50"
               >
-                {enviando ? "A enviar..." : "Fazer Pedido / Proposta"}
+                {enviando ? "A enviar..." : "Enviar pedido"}
               </button>
             </form>
           </div>

@@ -11,13 +11,13 @@ type ItemPedidoProps = {
   setPedidos: React.Dispatch<React.SetStateAction<PedidoType[]>>
 }
 
-const apiUrl = import.meta.env.VITE_API_URL
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 export default function ItemPedido({ pedido, pedidos, setPedidos }: ItemPedidoProps) {
   const { admin } = useAdminStore()
 
   async function excluirPedido() {
-    if (confirm(`Confirma a exclusão do pedido para "${pedido.produto?.nome}"?`)) {
+    if (confirm(`Confirma a exclusão do pedido para "${pedido.produto?.titulo}"?`)) {
       const response = await fetch(`${apiUrl}/pedidos/${pedido.id}`, {
         method: "DELETE",
         headers: {
@@ -36,9 +36,17 @@ export default function ItemPedido({ pedido, pedidos, setPedidos }: ItemPedidoPr
   }
 
   async function atualizarStatus() {
-    const novoStatus = prompt(`Informe o novo status do pedido (ex: Em Processamento, Enviado, Concluído):`, pedido.status || "")
+    const novoStatus = prompt(
+      "Informe um status válido: PENDENTE, EM_ANDAMENTO, CONCLUIDO ou CANCELADO.",
+      pedido.status
+    )
 
     if (novoStatus == null || novoStatus.trim() === "") {
+      return
+    }
+    const statusNormalizado = novoStatus.trim().toUpperCase()
+    if (!["PENDENTE", "EM_ANDAMENTO", "CONCLUIDO", "CANCELADO"].includes(statusNormalizado)) {
+      alert("Status inválido.")
       return
     }
 
@@ -48,13 +56,13 @@ export default function ItemPedido({ pedido, pedidos, setPedidos }: ItemPedidoPr
         "Content-type": "application/json",
         Authorization: `Bearer ${admin.token}`
       },
-      body: JSON.stringify({ status: novoStatus })
+      body: JSON.stringify({ status: statusNormalizado })
     })
 
     if (response.ok) {
       const pedidosAtualizados = pedidos.map(x => {
         if (x.id === pedido.id) {
-          return { ...x, status: novoStatus }
+          return { ...x, status: statusNormalizado as PedidoType["status"] }
         }
         return x
       })
@@ -64,21 +72,19 @@ export default function ItemPedido({ pedido, pedidos, setPedidos }: ItemPedidoPr
     }
   }
 
-  const imagemExibicao = pedido.produto?.fotos && pedido.produto.fotos.length > 0
-    ? pedido.produto.fotos[0].url
-    : "/placeholder-game.png"
+  const imagemExibicao = pedido.produto?.foto || "/placeholder-game.png"
 
   return (
     <tr className="bg-[#1C1C1E] border-b border-[#C89B3C]/20 hover:bg-[#242426] transition-colors">
       <td className="px-6 py-4">
         <img 
           src={imagemExibicao} 
-          alt={pedido.produto?.nome || "Foto do Produto"} 
+          alt={pedido.produto?.titulo || "Foto do Produto"}
           className="w-20 h-16 object-cover rounded-lg border border-[#C89B3C]/30"
         />
       </td>
       <td className="px-6 py-4 font-bold text-white">
-        {pedido.produto?.nome || "Produto Não Encontrado"}
+        {pedido.produto?.titulo || "Produto Não Encontrado"}
       </td>
       <td className="px-6 py-4 font-semibold text-[#E5BD55]">
         R$: {Number(pedido.produto?.preco || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
@@ -91,12 +97,12 @@ export default function ItemPedido({ pedido, pedidos, setPedidos }: ItemPedidoPr
       </td>
       <td className="px-6 py-4">
         <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-[#C89B3C]/20 text-[#E5BD55] border border-[#C89B3C]/40">
-          {pedido.status || "Pendente"}
+          {pedido.status}
         </span>
       </td>
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">
-          {pedido.status === "Concluído" ? (
+          {pedido.status === "CONCLUIDO" ? (
             <FcOk className="text-3xl" title="Pedido Concluído" />
           ) : (
             <>

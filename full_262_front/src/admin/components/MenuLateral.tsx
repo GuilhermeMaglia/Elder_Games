@@ -1,8 +1,7 @@
 import { useAdminStore } from "../context/AdminContext"
 import { IoExitOutline } from "react-icons/io5"
 import { BiSolidDashboard } from "react-icons/bi"
-import { FaCarSide, FaUsers } from "react-icons/fa6"
-import { BsCashCoin } from "react-icons/bs"
+import { FiBox, FiShoppingBag } from "react-icons/fi"
 
 import { Link, useNavigate } from "react-router-dom"
 
@@ -13,7 +12,7 @@ export function MenuLateral() {
   function adminSair() {
     if (confirm("Confirma Saída?")) {
       deslogaAdmin()
-      navigate("/", { replace: true })
+      navigate("/admin/login", { replace: true })
     }
   }
 
@@ -30,27 +29,19 @@ export function MenuLateral() {
             </Link>
           </li>
           <li>
-            <Link to="/admin/carros" className="flex items-center p-2">
+            <Link to="/admin/produtos" className="flex items-center p-2">
               <span className="h-5 text-gray-600 text-2xl">
-                <FaCarSide />
+                <FiBox />
               </span>
-              <span className="ms-2 mt-1">Cadastro de Veículos</span>
+              <span className="ms-2 mt-1">Produtos</span>
             </Link>
           </li>
           <li>
-          <Link to="/admin/clientes" className="flex items-center p-2">
+          <Link to="/admin/pedidos" className="flex items-center p-2">
               <span className="h-5 text-gray-600 text-2xl">
-                <FaUsers />
+                <FiShoppingBag />
               </span>
-              <span className="ms-2 mt-1">Controle de Clientes</span>
-            </Link>
-          </li>
-          <li>
-          <Link to="/admin/propostas" className="flex items-center p-2 cursor-pointer">
-              <span className="h-5 text-gray-600 text-2xl">
-                <BsCashCoin />
-              </span>
-              <span className="ms-2 mt-1">Controle de Propostas</span>
+              <span className="ms-2 mt-1">Pedidos</span>
             </Link>
           </li>
 
